@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* Sleek HSL Color Palette */
+  /* Sleek HSL Color Palette - Dark Theme Default */
   --bg-dark: 224 25% 5%;
   --bg-darker: 224 30% 3%;
   --card-dark: 224 20% 9%;
@@ -10,10 +10,13 @@
   
   --text-main: 0 0% 98%;
   --text-muted: 224 12% 64%;
+  --glass-bg: 13 17 28;
   
   --accent-purple: 262 85% 60%;
   --accent-cyan: 180 85% 50%;
-  --accent-glow: 262 80% 60% / 15%;
+  --accent-primary: 262 85% 60%;
+  --accent-secondary: 180 85% 50%;
+  --accent-glow: var(--accent-primary) / 15%;
   
   --sentiment-pos: 142 76% 45%;
   --sentiment-neg: 350 84% 56%;
@@ -22,7 +25,40 @@
   --font-title: 'Outfit', sans-serif;
   --font-sans: 'Inter', sans-serif;
   
-  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Light Theme Variables Override */
+body.light-mode {
+  --bg-dark: 220 20% 96%;
+  --bg-darker: 220 20% 91%;
+  --card-dark: 0 0% 100%;
+  --card-hover: 220 15% 98%;
+  --border-color: 220 15% 84%;
+  --text-main: 224 25% 12%;
+  --text-muted: 224 10% 45%;
+  --glass-bg: 255 255 255;
+}
+
+/* Custom Theme Accents Override */
+body.accent-purple {
+  --accent-primary: 262 85% 60%;
+  --accent-secondary: 180 85% 50%;
+}
+
+body.accent-cyan {
+  --accent-primary: 180 85% 50%;
+  --accent-secondary: 195 85% 50%;
+}
+
+body.accent-amber {
+  --accent-primary: 38 92% 52%;
+  --accent-secondary: 15 90% 55%;
+}
+
+body.accent-emerald {
+  --accent-primary: 142 76% 45%;
+  --accent-secondary: 180 85% 50%;
 }
 
 * {
@@ -39,8 +75,8 @@ body {
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
   background-image: 
-    radial-gradient(at 0% 0%, hsla(var(--accent-purple) / 0.08) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, hsla(var(--accent-cyan) / 0.05) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, hsla(var(--accent-primary) / 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, hsla(var(--accent-secondary) / 0.05) 0px, transparent 50%);
   background-attachment: fixed;
 }
 
@@ -68,18 +104,18 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Custom premium classes */
 .glass-panel {
-  background: rgba(13, 17, 28, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(var(--glass-bg), 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid hsla(var(--text-main) / 0.06);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  border-radius: 20px;
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.25);
   transition: var(--transition-smooth);
 }
 
 .glass-panel:hover {
-  border-color: hsla(var(--accent-purple) / 0.3);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), 0 0 16px 0 hsla(var(--accent-purple) / 0.05);
+  border-color: hsla(var(--accent-primary) / 0.35);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45), 0 0 20px 0 hsla(var(--accent-primary) / 0.08);
 }
 
 .text-gradient {
@@ -89,13 +125,13 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .accent-gradient {
-  background: linear-gradient(135deg, hsl(var(--accent-purple)) 0%, hsl(var(--accent-cyan)) 100%);
+  background: linear-gradient(135deg, hsl(var(--accent-primary)) 0%, hsl(var(--accent-secondary)) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .neon-glow {
-  box-shadow: 0 0 20px 0 hsla(var(--accent-purple) / 0.25);
+  box-shadow: 0 0 20px 0 hsla(var(--accent-primary) / 0.25);
 }
 
 .neon-border {
@@ -108,17 +144,17 @@ h1, h2, h3, h4, h5, h6 {
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, hsl(var(--accent-purple)), hsl(var(--accent-cyan)));
+  background: linear-gradient(135deg, hsl(var(--accent-primary)), hsl(var(--accent-secondary)));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
-  opacity: 0.3;
+  opacity: 0.25;
   transition: var(--transition-smooth);
 }
 
 .neon-border:hover::after {
-  opacity: 0.8;
+  opacity: 0.75;
 }
 
 /* Micro-animations */

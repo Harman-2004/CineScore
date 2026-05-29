@@ -9,6 +9,30 @@ import './App.css';
 // Fallback high-fidelity mock dataset used when backend is offline/unreachable
 const FALLBACK_MOVIES = [
   {
+    id: 157336,
+    title: "Interstellar",
+    overview: "The adventures of a group of explorers who make use of a newly discovered wormhole to surpass the limitations on human space travel and conquer the vast distances involved in an interstellar voyage in deep space.",
+    poster_path: "/gEU2QvH353eGo3t8vOIe6qI4tJu.jpg",
+    release_date: "2014-11-05",
+    vote_average: 8.4,
+    imdb_rating: 8.7,
+    metacritic_score: 7.4,
+    rating: {
+      imdb_score: 8.7,
+      tmdb_score: 8.4,
+      metacritic_score: 7.4,
+      sentiment_avg_polarity: 0.44,
+      reviews_count: 4,
+      aggregate_hybrid_score: 8.16
+    },
+    reviews: [
+      { id: 1, reviewer: "astro_guy", rating: 10.0, review_text: "A breathtaking cinematic masterpiece. The scientific themes are beautifully blended with an emotional father-daughter bond.", source: "IMDb", sentiment_label: "POSITIVE", sentiment_score: 0.9 },
+      { id: 2, reviewer: "space_cadet", rating: 8.0, review_text: "Incredible visuals and massive scope. The third act is polarizing, but the overall voyage is absolutely stunning.", source: "IMDb", sentiment_label: "POSITIVE", sentiment_score: 0.65 },
+      { id: 3, reviewer: "u/space_time_rel", rating: 10.0, review_text: "The docking scene in Interstellar is the absolute peak of cinema. Hans Zimmer's organ score blaring while Matthew McConaughey does the impossible is pure adrenaline.", source: "Reddit", sentiment_label: "POSITIVE", sentiment_score: 0.95 },
+      { id: 4, reviewer: "space_oddity", rating: 10.0, review_text: "literally cried over a giant glowing sphere and a weeping pilot in space. Hans Zimmer is not human, this score will echo in my head for centuries.", source: "Letterboxd", sentiment_label: "POSITIVE", sentiment_score: 0.98 }
+    ]
+  },
+  {
     id: 27205,
     title: "Inception",
     overview: "Cobb, a skilled thief who commits corporate espionage by infiltrating the subconscious of his targets, is offered a chance to regain his old life as payment for inception: the implantation of another person's idea into a target's subconscious.",
@@ -58,27 +82,26 @@ const FALLBACK_MOVIES = [
     ]
   },
   {
-    id: 157336,
-    title: "Interstellar",
-    overview: "The adventures of a group of explorers who make use of a newly discovered wormhole to surpass the limitations on human space travel and conquer the vast distances involved in an interstellar voyage in deep space.",
-    poster_path: "/gEU2QvH353eGo3t8vOIe6qI4tJu.jpg",
-    release_date: "2014-11-05",
-    vote_average: 8.4,
-    imdb_rating: 8.7,
-    metacritic_score: 7.4,
+    id: 329865,
+    title: "Arrival",
+    overview: "Linguist Louise Banks leads an elite team of investigators when gigantic spaceships touch down in 12 locations around the world. As nations teeter on the verge of global war, Banks and her crew must race against time to find a way to communicate with the extraterrestrial space visitors.",
+    poster_path: "/x2FIACR26ZbgD2W2o20V2SAu6r0.jpg",
+    release_date: "2016-11-10",
+    vote_average: 7.7,
+    imdb_rating: 7.9,
+    metacritic_score: 8.1,
     rating: {
-      imdb_score: 8.7,
-      tmdb_score: 8.4,
-      metacritic_score: 7.4,
-      sentiment_avg_polarity: 0.44,
-      reviews_count: 4,
-      aggregate_hybrid_score: 8.16
+      imdb_score: 7.9,
+      tmdb_score: 7.7,
+      metacritic_score: 8.1,
+      sentiment_avg_polarity: 0.46,
+      reviews_count: 3,
+      aggregate_hybrid_score: 7.82
     },
     reviews: [
-      { id: 1, reviewer: "astro_guy", rating: 10.0, review_text: "A breathtaking cinematic masterpiece. The scientific themes are beautifully blended with an emotional father-daughter bond.", source: "IMDb", sentiment_label: "POSITIVE", sentiment_score: 0.9 },
-      { id: 2, reviewer: "space_cadet", rating: 8.0, review_text: "Incredible visuals and massive scope. The third act is polarizing, but the overall voyage is absolutely stunning.", source: "IMDb", sentiment_label: "POSITIVE", sentiment_score: 0.65 },
-      { id: 3, reviewer: "u/space_time_rel", rating: 10.0, review_text: "The docking scene in Interstellar is the absolute peak of cinema. Hans Zimmer's organ score blaring while Matthew McConaughey does the impossible is pure adrenaline.", source: "Reddit", sentiment_label: "POSITIVE", sentiment_score: 0.95 },
-      { id: 4, reviewer: "space_oddity", rating: 10.0, review_text: "literally cried over a giant glowing sphere and a weeping pilot in space. Hans Zimmer is not human, this score will echo in my head for centuries.", source: "Letterboxd", sentiment_label: "POSITIVE", sentiment_score: 0.98 }
+      { id: 1, reviewer: "sci_fi_lover", rating: 9.0, review_text: "Denis Villeneuve's masterpiece. Dynamic sci-fi themes about language, communication, and time combined with an outstanding lead acting performance.", source: "IMDb", sentiment_label: "POSITIVE", sentiment_score: 0.9 },
+      { id: 2, reviewer: "critic_girl", rating: 8.0, review_text: "An emotionally resonant, beautiful story. Smart science fiction at its best.", source: "Letterboxd", sentiment_label: "POSITIVE", sentiment_score: 0.8 },
+      { id: 3, reviewer: "popcorn_guy", rating: 6.0, review_text: "Interesting concept but slightly slow. Visual effects were stunning though.", source: "Reddit", sentiment_label: "NEUTRAL", sentiment_score: 0.1 }
     ]
   }
 ];
@@ -116,33 +139,56 @@ const computeMockAspectScores = (reviewsList) => {
   };
 };
 
-// Helper: Frontend individual review fallback calculator for ABSA
-const getReviewAspectScores = (review) => {
-  if (review.aspect_scores) return review.aspect_scores;
+// Helper: Frontend fallback content recommendations (embeddings matching)
+const computeMockRecommendations = (movieId) => {
+  if (movieId === 157336) { // Interstellar
+    return [
+      {
+        id: 329865,
+        title: "Arrival",
+        overview: "Linguist Louise Banks leads an elite team of investigators when gigantic spaceships touch down in 12 locations around the world.",
+        poster_path: "/x2FIACR26ZbgD2W2o20V2SAu6r0.jpg",
+        release_date: "2016-11-10",
+        vote_average: 7.7,
+        recommendation_reason: "If you liked Interstellar, watch Arrival."
+      },
+      {
+        id: 27205,
+        title: "Inception",
+        overview: "Cobb, a skilled thief who commits corporate espionage by infiltrating the subconscious of his targets...",
+        poster_path: "/o062xtC3n4c73nJgf95SI6tAs2t.jpg",
+        release_date: "2010-07-15",
+        vote_average: 8.3,
+        recommendation_reason: "Overview similarity match: 72%"
+      }
+    ];
+  }
+  if (movieId === 329865) { // Arrival
+    return [
+      {
+        id: 157336,
+        title: "Interstellar",
+        overview: "The adventures of a group of explorers who make use of a newly discovered wormhole...",
+        poster_path: "/gEU2QvH353eGo3t8vOIe6qI4tJu.jpg",
+        release_date: "2014-11-05",
+        vote_average: 8.4,
+        recommendation_reason: "If you liked Interstellar, watch Arrival."
+      }
+    ];
+  }
   
-  const text = review.review_text.toLowerCase();
-  const globalVal = review.sentiment_label === 'POSITIVE' ? 8.5 : (review.sentiment_label === 'NEGATIVE' ? 2.5 : 5.0);
-  
-  const keywords = {
-    acting: ["act", "acting", "actor", "actors", "cast", "performance"],
-    story: ["story", "plot", "script", "writing"],
-    music: ["music", "song", "score", "soundtrack", "zimmer"],
-    visual_effects: ["effects", "visual", "visuals", "cgi", "sfx", "cinematography"],
-    direction: ["direction", "director", "nolan", "filmmaking"]
-  };
-  
-  const aspectScores = {};
-  Object.entries(keywords).forEach(([aspect, keys]) => {
-    const mentions = keys.some(k => text.includes(k));
-    if (mentions) {
-      aspectScores[aspect] = review.sentiment_label === 'POSITIVE' ? 9.0 : (review.sentiment_label === 'NEGATIVE' ? 2.0 : 5.0);
-    } else {
-      const hash = aspect.length % 3;
-      aspectScores[aspect] = Math.max(1.0, Math.min(10.0, globalVal + (hash - 1) * 0.4));
+  // Default recommendations
+  return [
+    {
+      id: 157336,
+      title: "Interstellar",
+      overview: "The adventures of a group of explorers who make use of a newly discovered wormhole...",
+      poster_path: "/gEU2QvH353eGo3t8vOIe6qI4tJu.jpg",
+      release_date: "2014-11-05",
+      vote_average: 8.4,
+      recommendation_reason: "Sci-Fi content correlation match."
     }
-  });
-  
-  return aspectScores;
+  ];
 };
 
 // Helper: Frontend fallback moderation check for spam and duplicates
@@ -187,45 +233,6 @@ const computeMockModeration = (reviewsList) => {
   });
 };
 
-// Helper: Frontend fallback content recommendations (embeddings matching)
-const computeMockRecommendations = (movieId) => {
-  if (movieId === 157336) { // Interstellar
-    return [
-      {
-        id: 329865,
-        title: "Arrival",
-        overview: "Linguist Louise Banks leads an elite team of investigators when gigantic spaceships touch down in 12 locations around the world.",
-        poster_path: "/x2FIACR26ZbgD2W2o20V2SAu6r0.jpg",
-        release_date: "2016-11-10",
-        vote_average: 7.7,
-        recommendation_reason: "If you liked Interstellar, watch Arrival."
-      },
-      {
-        id: 27205,
-        title: "Inception",
-        overview: "Cobb, a skilled thief who commits corporate espionage by infiltrating the subconscious of his targets...",
-        poster_path: "/o062xtC3n4c73nJgf95SI6tAs2t.jpg",
-        release_date: "2010-07-15",
-        vote_average: 8.3,
-        recommendation_reason: "Overview similarity match: 72%"
-      }
-    ];
-  }
-  
-  // Default recommendations
-  return [
-    {
-      id: 157336,
-      title: "Interstellar",
-      overview: "The adventures of a group of explorers who make use of a newly discovered wormhole...",
-      poster_path: "/gEU2QvH353eGo3t8vOIe6qI4tJu.jpg",
-      release_date: "2014-11-05",
-      vote_average: 8.4,
-      recommendation_reason: "Sci-Fi content correlation match."
-    }
-  ];
-};
-
 export default function App() {
   const [moviesList, setMoviesList] = useState(FALLBACK_MOVIES);
   const [selectedMovie, setSelectedMovie] = useState({
@@ -233,10 +240,10 @@ export default function App() {
     reviews: computeMockModeration(FALLBACK_MOVIES[0].reviews),
     average_aspect_scores: computeMockAspectScores(FALLBACK_MOVIES[0].reviews),
     integrity_metrics: {
-      integrity_score: 80.0,
-      spam_count: 1,
+      integrity_score: 95.0,
+      spam_count: 0,
       bot_flag_count: 0,
-      duplicate_count: 1
+      duplicate_count: 0
     }
   });
   
@@ -245,22 +252,57 @@ export default function App() {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [skeletonLoading, setSkeletonLoading] = useState(false);
   const [scrapeStatus, setScrapeStatus] = useState('');
   const [backendAlive, setBackendAlive] = useState(false);
+  
   const [backendUrl] = useState(
     import.meta.env.VITE_API_URL || 
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       ? 'http://localhost:8000'
-      : 'https://cinescore-api.onrender.com') // Change 'https://cinescore-api.onrender.com' to your actual deployed Render backend service URL
+      : 'https://cinescore-api.onrender.com')
   );
   
+  // Dynamic Settings / Redesign themes state
+  const [themeMode, setThemeMode] = useState('dark'); // 'dark', 'light'
+  const [accentColor, setAccentColor] = useState('purple'); // 'purple', 'cyan', 'amber', 'emerald'
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [activeGenre, setActiveGenre] = useState('ALL');
+  
+  // Custom Toast stack
+  const [toasts, setToasts] = useState([]);
+  
+  const addToast = (msg, title = "INFO", type = "purple") => {
+    const id = Date.now() + Math.random();
+    setToasts(prev => [...prev, { id, msg, title, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 4000);
+  };
+  
+  // Sync Dark/Light Mode styles
+  useEffect(() => {
+    if (themeMode === 'light') {
+      document.body.classList.add('light-mode');
+    } else {
+      document.body.classList.remove('light-mode');
+    }
+  }, [themeMode]);
+
+  // Sync Accent themes
+  useEffect(() => {
+    const accents = ['accent-purple', 'accent-cyan', 'accent-amber', 'accent-emerald'];
+    accents.forEach(cls => document.body.classList.remove(cls));
+    document.body.classList.add(`accent-${accentColor}`);
+  }, [accentColor]);
+
   // Custom Routing / Navigation Tabs
   const [currentPage, setCurrentPage] = useState('home'); // 'home', 'details', 'analytics', 'reviews'
   
   // Spambot Filter toggle state
   const [hideSpam, setHideSpam] = useState(true);
   
-  // Review page specific states
+  // Reviews filters
   const [reviewFilter, setReviewFilter] = useState('ALL');
   const [reviewSearchQuery, setReviewSearchQuery] = useState('');
 
@@ -283,12 +325,14 @@ export default function App() {
       .then(data => {
         if (data.status === 'healthy') {
           setBackendAlive(true);
+          addToast("Connected to live FastAPI database engine.", "SYSTEM ACTIVE", "emerald");
           fetchPopularMovies();
         }
       })
       .catch(() => {
         setBackendAlive(false);
         console.log("FastAPI backend is offline. Operating in high-fidelity mock mode.");
+        addToast("Using localized secure mock datasets.", "OFFLINE Fallback", "amber");
       });
   }, []);
 
@@ -298,14 +342,16 @@ export default function App() {
       .then(data => {
         if (data.results && data.results.length > 0) {
           setMoviesList(data.results);
-          fetchMovieDetails(data.results[0].id);
+          fetchMovieDetails(data.results[0].id, false);
         }
       })
       .catch(err => console.error("Error loading movies:", err));
   };
 
-  const fetchMovieDetails = (movieId) => {
-    setIsLoading(true);
+  const fetchMovieDetails = (movieId, triggerAnimation = true) => {
+    if (triggerAnimation) {
+      setSkeletonLoading(true);
+    }
     
     Promise.all([
       fetch(`${backendUrl}/movie/${movieId}`).then(r => r.json()),
@@ -335,7 +381,11 @@ export default function App() {
         };
         setSelectedMovie(enrichedMovie);
         setRecommendations(recommendationsData || computeMockRecommendations(movieId));
-        setIsLoading(false);
+        
+        setTimeout(() => {
+          setSkeletonLoading(false);
+          addToast(`Loaded catalog data for: ${movieData.title}`, "CATALOG SYNC", "purple");
+        }, 300);
       })
       .catch(err => {
         console.error("Error loading details, falling back to mock details:", err);
@@ -346,21 +396,26 @@ export default function App() {
             reviews: computeMockModeration(localMock.reviews),
             average_aspect_scores: computeMockAspectScores(localMock.reviews),
             integrity_metrics: {
-              integrity_score: 80.0,
-              spam_count: 1,
+              integrity_score: 95.0,
+              spam_count: 0,
               bot_flag_count: 0,
-              duplicate_count: 1
+              duplicate_count: 0
             }
           });
           setRecommendations(computeMockRecommendations(movieId));
         }
-        setIsLoading(false);
+        setTimeout(() => {
+          setSkeletonLoading(false);
+          addToast(`Synced localized catalog for movie ID ${movieId}`, "CATALOG SYNC", "purple");
+        }, 300);
       });
   };
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
+
+    addToast(`Searching catalog for: "${searchQuery}"`, "QUERYING", "cyan");
 
     if (backendAlive) {
       setIsLoading(true);
@@ -370,9 +425,9 @@ export default function App() {
           if (data.results && data.results.length > 0) {
             setMoviesList(data.results);
             fetchMovieDetails(data.results[0].id);
-            setCurrentPage('home'); // Go to Home to show search results
+            setCurrentPage('home');
           } else {
-            alert("No movies found.");
+            addToast("No match found in web feeds.", "NO RESULTS", "amber");
           }
           setIsLoading(false);
         })
@@ -386,21 +441,22 @@ export default function App() {
       );
       if (filtered.length > 0) {
         setMoviesList(filtered);
+        const match = filtered[0];
         setSelectedMovie({
-          ...filtered[0],
-          reviews: computeMockModeration(filtered[0].reviews),
-          average_aspect_scores: computeMockAspectScores(filtered[0].reviews),
+          ...match,
+          reviews: computeMockModeration(match.reviews),
+          average_aspect_scores: computeMockAspectScores(match.reviews),
           integrity_metrics: {
-            integrity_score: 80.0,
-            spam_count: 1,
+            integrity_score: 95.0,
+            spam_count: 0,
             bot_flag_count: 0,
-            duplicate_count: 1
+            duplicate_count: 0
           }
         });
-        setRecommendations(computeMockRecommendations(filtered[0].id));
-        setCurrentPage('home'); // Go to Home to show search results
+        setRecommendations(computeMockRecommendations(match.id));
+        setCurrentPage('home');
       } else {
-        alert("No local matches. Try searching 'Inception' or 'Dark Knight'.");
+        addToast("No local match. Try searching 'Inception' or 'Dark Knight'.", "NO RESULTS", "amber");
       }
     }
   };
@@ -415,7 +471,7 @@ export default function App() {
       if (phaseIndex < SCRAPE_PHASES.length) {
         setScrapeStatus(SCRAPE_PHASES[phaseIndex]);
       }
-    }, 1000);
+    }, 800);
 
     if (backendAlive) {
       fetch(`${backendUrl}/movies/${selectedMovie.id}/scraped-reviews`)
@@ -424,9 +480,11 @@ export default function App() {
           clearInterval(interval);
           setScrapeStatus("Parsing aggregated ratings...");
           setTimeout(() => {
-            fetchMovieDetails(selectedMovie.id);
+            fetchMovieDetails(selectedMovie.id, false);
             setScrapeStatus('');
-          }, 1000);
+            setIsLoading(false);
+            addToast("Dynamic public web feedback Aggregated successfully.", "SCRAPE READY", "emerald");
+          }, 800);
         })
         .catch(err => {
           console.error("Scraper failed:", err);
@@ -439,10 +497,33 @@ export default function App() {
         clearInterval(interval);
         setScrapeStatus('');
         setIsLoading(false);
-        alert("Mock Scraper complete. Local database has been synchronized.");
+        addToast("Staged mock scraper synced complete database tables.", "OFFLINE MOCK SUCCESS", "emerald");
       }, 4000);
     }
   };
+
+  // Genre tab filtering logic
+  const genresChipsList = [
+    { label: "All Genres", code: "ALL" },
+    { label: "Science Fiction", code: 878 },
+    { label: "Action", code: 28 },
+    { label: "Adventure", code: 12 },
+    { label: "Drama", code: 18 }
+  ];
+
+  const filteredMoviesGrid = moviesList.filter(movie => {
+    if (activeGenre === 'ALL') return true;
+    
+    if (movie.genre_ids && Array.isArray(movie.genre_ids)) {
+      return movie.genre_ids.includes(activeGenre);
+    }
+    
+    if (movie.genres && Array.isArray(movie.genres)) {
+      return movie.genres.some(g => g.id === activeGenre || g === activeGenre);
+    }
+    
+    return true;
+  });
 
   const reviews = selectedMovie.reviews || [];
   const totalReviews = reviews.length;
@@ -450,58 +531,49 @@ export default function App() {
   const negativeReviews = reviews.filter(r => r.sentiment_label === 'NEGATIVE').length;
   const neutralReviews = reviews.filter(r => r.sentiment_label === 'NEUTRAL').length;
 
-  const posPct = totalReviews ? Math.round((positiveReviews / totalReviews) * 100) : 50;
-  const negPct = totalReviews ? Math.round((negativeReviews / totalReviews) * 100) : 50;
-
   const hybridRating = selectedMovie.rating || {};
   const compositeScore = hybridRating.aggregate_score || hybridRating.aggregate_hybrid_score || selectedMovie.vote_average || 7.0;
 
-  // Spambot check values
-  const spamReviewsCount = reviews.filter(r => r.moderation?.is_spam || r.moderation?.is_bot).length;
+  // Spambot values
   const integrity = selectedMovie.integrity_metrics || { integrity_score: 100.0, spam_count: 0, bot_flag_count: 0, duplicate_count: 0 };
 
-  // Recharts 1: Rating Comparison Bar Data (Normalized out of 10)
+  // Recharts Data visualizations
   const ratingComparisonData = [
     { name: 'IMDb', Score: parseFloat((hybridRating.imdb_score || selectedMovie.imdb_rating || 0).toFixed(1)) },
     { name: 'TMDb', Score: parseFloat((hybridRating.tmdb_score || selectedMovie.vote_average || 0).toFixed(1)) },
     { name: 'Metacritic', Score: parseFloat((hybridRating.metacritic_score || selectedMovie.metacritic_score || 0).toFixed(1)) },
     { name: 'NLP Score', Score: parseFloat(((hybridRating.sentiment_avg_polarity || 0.4) * 5 + 5).toFixed(1)) },
-    { name: 'Composite AI', Score: parseFloat(compositeScore.toFixed(1)) }
+    { name: 'CineScore AI', Score: parseFloat(compositeScore.toFixed(1)) }
   ];
 
-  // Recharts 2: Sentiment Distribution Pie Data
   const sentimentPieData = [
     { name: 'Positive', value: positiveReviews || 3, color: '#22c55e' },
     { name: 'Neutral', value: neutralReviews || 1, color: '#64748b' },
     { name: 'Negative', value: negativeReviews || 1, color: '#ef4444' }
   ].filter(d => d.value > 0);
 
-  // Recharts 3: Chronological Sentiment Positivity Trend
-  const sortedReviews = [...reviews].reverse(); // Oldest first
+  const sortedReviews = [...reviews].reverse();
   let cumulativeSentiment = 0;
   const positivityTrendData = sortedReviews.map((r, index) => {
     const polarity = r.sentiment_label === 'POSITIVE' ? 1.0 : (r.sentiment_label === 'NEGATIVE' ? -1.0 : 0.0);
     cumulativeSentiment += polarity;
     const avgPolarity = cumulativeSentiment / (index + 1);
-    const trendRating = 5.0 + (avgPolarity * 5.0); // Map -1 to 1 onto 0 to 10
+    const trendRating = 5.0 + (avgPolarity * 5.0);
     return {
-      name: `Review #${index + 1}`,
-      'Sentiment Score': parseFloat(trendRating.toFixed(1)),
-      reviewer: r.reviewer
+      name: `#${index + 1}`,
+      'Vibe Score': parseFloat(trendRating.toFixed(1))
     };
   });
 
-  // If no trend data compiled, create a clean default timeline for the chart
   if (positivityTrendData.length === 0) {
     positivityTrendData.push(
-      { name: 'Start', 'Sentiment Score': 5.0 },
-      { name: 'Review #1', 'Sentiment Score': 7.5 },
-      { name: 'Review #2', 'Sentiment Score': 6.0 },
-      { name: 'Review #3', 'Sentiment Score': 8.0 }
+      { name: 'Start', 'Vibe Score': 5.0 },
+      { name: '#1', 'Vibe Score': 7.5 },
+      { name: '#2', 'Vibe Score': 6.0 },
+      { name: '#3', 'Vibe Score': 8.0 }
     );
   }
 
-  // Recharts 4: ABSA Aspect Score ratings (out of 10)
   const avgAspects = selectedMovie.average_aspect_scores || computeMockAspectScores(reviews);
   const aspectData = [
     { name: 'Acting', Score: avgAspects.acting, color: '#facc15' },
@@ -511,10 +583,16 @@ export default function App() {
     { name: 'Direction', Score: avgAspects.direction, color: '#4ade80' }
   ];
 
-  // Reviews Tab Filter Rules
+  // Audience Emotion values
+  const emotionMetrics = {
+    joy: Math.min(100, Math.max(10, Math.round(positiveReviews * 28 + (selectedMovie.id % 5) * 5))),
+    surprise: Math.min(100, Math.max(10, Math.round(neutralReviews * 25 + (selectedMovie.id % 7) * 4))),
+    tension: Math.min(100, Math.max(10, Math.round(negativeReviews * 30 + (selectedMovie.id % 3) * 8))),
+    narrative: Math.min(100, Math.max(10, Math.round((avgAspects.story || 7.0) * 10)))
+  };
+
   const filteredReviews = reviews.filter(r => {
     if (hideSpam && r.moderation?.is_spam) return false;
-    
     const matchesSentiment = reviewFilter === 'ALL' || r.sentiment_label === reviewFilter;
     const matchesKeyword = !reviewSearchQuery.trim() || 
       r.review_text.toLowerCase().includes(reviewSearchQuery.toLowerCase()) ||
@@ -524,96 +602,170 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {/* Top Navigation Bar */}
+      {/* Decorative Ambient Radial glowing layers */}
+      <div className="ambient-glow-circle ambient-1"></div>
+      <div className="ambient-glow-circle ambient-2"></div>
+
+      {/* Toast Notification HUD */}
+      <div className="toast-stack">
+        {toasts.map(toast => (
+          <div key={toast.id} className="toast-notification glass-panel">
+            <div className={`toast-icon accent-dot-${toast.type || 'purple'}`}>✓</div>
+            <div className="toast-body">
+              <div className="toast-msg">{toast.msg}</div>
+              <div className="toast-title">{toast.title}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Apple TV / Netflix style Frosted sticky navbar */}
       <header className="header-nav">
-        <div className="brand-section">
+        <div className="brand-section" onClick={() => setCurrentPage('home')}>
           <div className="brand-logo">C</div>
           <div className="brand-logo-text">
-            <h1 className="brand-name">CINE.AI</h1>
-            <span className="brand-subtitle text-gradient">HYBRID RATING PLATFORM</span>
+            <span className="brand-name">CineScore</span>
+            <span className="brand-subtitle text-gradient">AI INTELLIGENCE</span>
           </div>
-          <span className="badge" style={{
-            backgroundColor: backendAlive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-            color: backendAlive ? '#4ade80' : '#fbbf24',
-            border: backendAlive ? '1px solid rgba(34, 197, 94, 0.2)' : '1px solid rgba(245, 158, 11, 0.2)',
-            marginLeft: '8px'
-          }}>
-            {backendAlive ? 'BACKEND CONNECTED' : 'MOCK MODE'}
-          </span>
         </div>
 
-        {/* Glassmorphic Tabbed Router Menu */}
+        {/* Navigation tabs router */}
         <nav className="nav-tabs-container">
           <button 
             className={`nav-tab-btn ${currentPage === 'home' ? 'active' : ''}`}
-            onClick={() => setCurrentPage('home')}
+            onClick={() => {
+              setCurrentPage('home');
+              addToast("Routing to catalog home page", "SYSTEM NAVIGATION", "purple");
+            }}
           >
             Home
           </button>
           <button 
             className={`nav-tab-btn ${currentPage === 'details' ? 'active' : ''}`}
-            onClick={() => setCurrentPage('details')}
+            onClick={() => {
+              setCurrentPage('details');
+              addToast("Displaying movie detailed analytics", "SYSTEM NAVIGATION", "purple");
+            }}
             disabled={!selectedMovie}
           >
-            Movie Details
+            Details
           </button>
           <button 
             className={`nav-tab-btn ${currentPage === 'analytics' ? 'active' : ''}`}
-            onClick={() => setCurrentPage('analytics')}
+            onClick={() => {
+              setCurrentPage('analytics');
+              addToast("Compiling audience vibe metrics", "SYSTEM NAVIGATION", "purple");
+            }}
             disabled={!selectedMovie}
           >
             Analytics
           </button>
           <button 
             className={`nav-tab-btn ${currentPage === 'reviews' ? 'active' : ''}`}
-            onClick={() => setCurrentPage('reviews')}
+            onClick={() => {
+              setCurrentPage('reviews');
+              addToast("Synchronizing public review tables", "SYSTEM NAVIGATION", "purple");
+            }}
             disabled={!selectedMovie}
           >
             Reviews
           </button>
         </nav>
 
-        {/* Global Movie Search Bar */}
-        <form id="search-form" onSubmit={handleSearchSubmit} className="search-form">
+        {/* Global Search Bar */}
+        <form onSubmit={handleSearchSubmit} className="search-form">
           <input
-            id="search-input"
             type="text"
             placeholder="Search movies (e.g. Inception)..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-input"
           />
-          <button id="search-button" type="submit" className="search-button">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <button type="submit" className="search-button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </button>
         </form>
       </header>
 
-      {/* Main Pages Render Controller */}
-      <main className="main-render-view" style={{ position: 'relative', flexGrow: 1 }}>
+      {/* Main Pages Render HUD */}
+      <main style={{ position: 'relative', flexGrow: 1, marginTop: '24px' }}>
         
-        {/* Loading Overlay */}
+        {/* Scraper loading spinner */}
         {isLoading && (
           <div className="loading-overlay">
             <div className="loading-spinner"></div>
-            <p className="loading-title">Analyzing Movie Metadata</p>
-            <p className="loading-subtitle animate-pulse">{scrapeStatus || "Querying database..."}</p>
+            <p className="loading-title">Compiling Live Sentiment Analysis</p>
+            <p className="loading-subtitle animate-pulse">{scrapeStatus || "Fetching public review streams..."}</p>
           </div>
         )}
 
-        {/* PAGE 1: HOME (Movie Card Search Grid) */}
+        {/* PAGE 1: HOME PAGE (Netflix Featured Hero banner + Grid) */}
         {currentPage === 'home' && (
-          <section className="home-grid-section">
-            <h2 className="catalog-title text-gradient" style={{ marginBottom: '24px', fontSize: '13px' }}>
-              POPULAR MOVIES ON CINE.AI
-            </h2>
+          <div className="fade-in">
+            {/* Cinematic OTT Featured Hero Section */}
+            {selectedMovie && (
+              <div className="hero-banner-container glass-panel">
+                {selectedMovie.poster_path ? (
+                  <img
+                    src={selectedMovie.poster_path.startsWith('http') ? selectedMovie.poster_path : `https://image.tmdb.org/t/p/original${selectedMovie.poster_path}`}
+                    alt={selectedMovie.title}
+                    className="hero-backdrop-img"
+                  />
+                ) : (
+                  <div className="hero-backdrop-img" style={{ background: '#1e293b' }}></div>
+                )}
+                <div className="hero-overlay-fade"></div>
+                <div className="hero-text-content">
+                  <span className="hero-featured-tag">FEATURED AI INTELLIGENCE</span>
+                  <h2 className="hero-title">{selectedMovie.title}</h2>
+                  <p className="hero-tagline">{selectedMovie.overview}</p>
+                  <div className="hero-btn-row">
+                    <button 
+                      onClick={() => {
+                        setCurrentPage('details');
+                        addToast(`Showing details for ${selectedMovie.title}`, "DASHBOARD", "purple");
+                      }} 
+                      className="hero-btn-primary"
+                    >
+                      AI Ratings
+                    </button>
+                    <button 
+                      onClick={triggerLiveScraper} 
+                      className="hero-btn-secondary"
+                    >
+                      Scrape Feedback
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Catalog Grid Section with Genre Filter chips */}
+            <div className="catalog-header-bar">
+              <h3 className="catalog-title">POPULAR ON CINESCORE</h3>
+              <div className="genre-chips-container">
+                {genresChipsList.map(chip => (
+                  <button
+                    key={chip.code}
+                    onClick={() => {
+                      setActiveGenre(chip.code);
+                      addToast(`Filtering catalog by genre`, "FILTER SYNC", "cyan");
+                    }}
+                    className={`genre-chip ${activeGenre === chip.code ? 'active' : ''}`}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Movie Grid */}
             <div className="movie-grid">
-              {moviesList.map((movie) => (
+              {filteredMoviesGrid.map((movie) => (
                 <div
                   key={movie.id}
-                  id={`movie-item-${movie.id}`}
                   onClick={() => {
                     fetchMovieDetails(movie.id);
                     setCurrentPage('details');
@@ -634,7 +786,7 @@ export default function App() {
                     </div>
                   </div>
                   <div className="movie-card-info">
-                    <h3 className="movie-card-title">{movie.title}</h3>
+                    <h4 className="movie-card-title">{movie.title}</h4>
                     <div className="movie-card-meta-row">
                       <span className="movie-card-year">
                         {movie.release_date ? movie.release_date.split('-')[0] : 'N/A'}
@@ -643,542 +795,650 @@ export default function App() {
                         <span className="badge badge-tmdb">
                           TMDb: {movie.vote_average ? movie.vote_average.toFixed(1) : '0.0'}
                         </span>
-                        {(movie.imdb_rating || movie.rating?.imdb_score) && (
-                          <span className="badge badge-imdb">
-                            IMDb: {movie.imdb_rating ? movie.imdb_rating.toFixed(1) : movie.rating?.imdb_score?.toFixed(1) || 'N/A'}
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-          </section>
+          </div>
         )}
 
-        {/* PAGE 2: MOVIE DETAILS (Information, Scrapers & Composite Score Gauge) */}
-        {currentPage === 'details' && selectedMovie && (
-          <section className="details-section">
-            {/* Movie Details card */}
-            <div className="movie-detail-card glass-panel">
-              <div className="movie-detail-poster float-animation">
-                {selectedMovie.poster_path ? (
-                  <img
-                    src={selectedMovie.poster_path.startsWith('http') ? selectedMovie.poster_path : `https://image.tmdb.org/t/p/w300${selectedMovie.poster_path}`}
-                    alt={selectedMovie.title}
-                  />
-                ) : (
-                  <div className="no-poster-text">NO POSTER</div>
+        {/* SKELETON LOADER SCREEN */}
+        {skeletonLoading ? (
+          <div className="movie-grid" style={{ marginTop: '40px' }}>
+            {[1, 2, 3, 4].map(idx => (
+              <div key={idx} className="skeleton-card skeleton-pulse">
+                <div className="skeleton-image"></div>
+                <div className="skeleton-text"></div>
+                <div className="skeleton-text short"></div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <>
+            {/* PAGE 2: MOVIE DETAILS (Large backdrop, compare meters, streaming platforms) */}
+            {currentPage === 'details' && selectedMovie && (
+              <div className="details-section fade-in">
+                {/* Backdrop Banner blurred card */}
+                <div className="movie-details-backdrop-banner">
+                  {selectedMovie.poster_path ? (
+                    <img
+                      src={selectedMovie.poster_path.startsWith('http') ? selectedMovie.poster_path : `https://image.tmdb.org/t/p/original${selectedMovie.poster_path}`}
+                      alt={selectedMovie.title}
+                      className="details-backdrop-img"
+                    />
+                  ) : (
+                    <div className="details-backdrop-img" style={{ background: '#1e293b' }}></div>
+                  )}
+                  <div className="details-backdrop-overlay"></div>
+                </div>
+
+                {/* Primary floating details card */}
+                <div className="movie-detail-card glass-panel">
+                  <div className="movie-detail-poster">
+                    {selectedMovie.poster_path ? (
+                      <img
+                        src={selectedMovie.poster_path.startsWith('http') ? selectedMovie.poster_path : `https://image.tmdb.org/t/p/w300${selectedMovie.poster_path}`}
+                        alt={selectedMovie.title}
+                      />
+                    ) : (
+                      <div className="no-poster-text">NO POSTER</div>
+                    )}
+                  </div>
+
+                  <div className="movie-detail-content">
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+                        <h2 className="movie-detail-title">{selectedMovie.title}</h2>
+                        <button 
+                          onClick={() => {
+                            setCurrentPage('analytics');
+                            addToast("Routing to interactive Recharts graphs", "SYSTEM NAVIGATION", "purple");
+                          }}
+                          className="nav-tab-btn active"
+                          style={{ fontSize: '11px', padding: '6px 14px' }}
+                        >
+                          View Analytics &rarr;
+                        </button>
+                      </div>
+                      <p className="movie-detail-release">RELEASE DATE: {selectedMovie.release_date || 'N/A'}</p>
+                      <p className="movie-detail-overview">{selectedMovie.overview}</p>
+                    </div>
+
+                    <div>
+                      <button onClick={triggerLiveScraper} className="scraper-button">
+                        Scrape Live Web Feedback
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* OTT Streaming Availability Cards */}
+                <div className="streaming-container glass-panel">
+                  <span className="drawer-section-title">STREAMING NOW ON PLATFORMS</span>
+                  <div className="streaming-grid">
+                    <div className="streaming-card netflix-glow">
+                      <div className="streaming-logo-placeholder" style={{ background: '#e50914' }}>N</div>
+                      <span style={{ fontSize: '12px', fontWeight: '700', color: 'hsl(var(--text-main))' }}>Netflix</span>
+                      <span style={{ fontSize: '9px', color: '#22c55e', fontWeight: 'bold', marginTop: '4px' }}>4K STREAM</span>
+                    </div>
+                    <div className="streaming-card prime-glow">
+                      <div className="streaming-logo-placeholder" style={{ background: '#00a8e2' }}>P</div>
+                      <span style={{ fontSize: '12px', fontWeight: '700', color: 'hsl(var(--text-main))' }}>Prime Video</span>
+                      <span style={{ fontSize: '9px', color: '#22c55e', fontWeight: 'bold', marginTop: '4px' }}>INCLUDED</span>
+                    </div>
+                    <div className="streaming-card apple-glow">
+                      <div className="streaming-logo-placeholder" style={{ background: '#1a1a1a' }}></div>
+                      <span style={{ fontSize: '12px', fontWeight: '700', color: 'hsl(var(--text-main))' }}>Apple TV+</span>
+                      <span style={{ fontSize: '9px', color: '#fbbf24', fontWeight: 'bold', marginTop: '4px' }}>RENT $3.99</span>
+                    </div>
+                    <div className="streaming-card disney-glow">
+                      <div className="streaming-logo-placeholder" style={{ background: '#0072ce' }}>D</div>
+                      <span style={{ fontSize: '12px', fontWeight: '700', color: 'hsl(var(--text-main))' }}>Disney+</span>
+                      <span style={{ fontSize: '9px', color: '#cbd5e1', fontWeight: 'bold', marginTop: '4px' }}>UNAVAILABLE</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* AI & Platform Ratings comparison dashboard */}
+                <div className="score-dashboard-grid">
+                  
+                  {/* CineScore AI composite gauge */}
+                  <div className="gauge-card glass-panel">
+                    <h3 className="catalog-title text-gradient">CineScore AI Aggregate</h3>
+                    
+                    <div className="relative" style={{ width: '150px', height: '150px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '12px 0', position: 'relative' }}>
+                      <svg width="100%" height="100%" viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
+                        <circle cx="50" cy="50" r="40" fill="transparent" stroke="rgba(255,255,255,0.03)" strokeWidth="8" />
+                        <circle
+                          cx="50"
+                          cy="50"
+                          r="40"
+                          fill="transparent"
+                          stroke="url(#accentGradient)"
+                          strokeWidth="8"
+                          strokeDasharray={2 * Math.PI * 40}
+                          strokeDashoffset={2 * Math.PI * 40 * (1 - compositeScore / 10.0)}
+                          strokeLinecap="round"
+                        />
+                        <defs>
+                          <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="hsl(var(--accent-primary))" />
+                            <stop offset="100%" stopColor="hsl(var(--accent-secondary))" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                      <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <span style={{ fontSize: '36px', fontWeight: '800', color: 'hsl(var(--text-main))', letterSpacing: '-0.03em', lineHeight: '1' }}>{compositeScore.toFixed(2)}</span>
+                        <span style={{ fontSize: '8px', color: 'hsl(var(--accent-primary))', fontFamily: 'monospace', letterSpacing: '0.15em', marginTop: '4px', fontWeight: 'bold' }}>AI COMPOSITE</span>
+                      </div>
+                    </div>
+
+                    <div style={{ width: '100%', borderTop: '1px solid hsla(var(--text-main) / 0.05)', paddingTop: '10px' }}>
+                      <p style={{ fontSize: '10px', fontFamily: 'monospace', color: 'hsl(var(--text-muted))', lineHeight: '1.4' }}>
+                        Formula Weight:<br/>0.4(IMDb) + 0.2(TMDb) + 0.1(Meta) + 0.3(NLP)
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Multi-platform compare scores progress bars */}
+                  <div className="breakdown-card glass-panel">
+                    <h3 className="catalog-title" style={{ marginBottom: '16px' }}>Platform Comparisons</h3>
+                    
+                    <div className="bar-list">
+                      {/* IMDb */}
+                      <div className="bar-item">
+                        <div className="bar-label-row">
+                          <span style={{ color: 'hsl(var(--text-main))', fontWeight: '600' }}>IMDb Score (40% Weight)</span>
+                          <span style={{ fontWeight: '700', color: '#fbbf24' }}>{hybridRating.imdb_score ? hybridRating.imdb_score.toFixed(1) : (selectedMovie.imdb_rating ? selectedMovie.imdb_rating.toFixed(1) : 'N/A')}/10</span>
+                        </div>
+                        <div className="bar-track">
+                          <div className="bar-fill" style={{ width: `${(hybridRating.imdb_score || selectedMovie.imdb_rating || 8.0) * 10}%`, backgroundColor: '#fbbf24' }}></div>
+                        </div>
+                      </div>
+
+                      {/* TMDb */}
+                      <div className="bar-item">
+                        <div className="bar-label-row">
+                          <span style={{ color: 'hsl(var(--text-main))', fontWeight: '600' }}>TMDb Score (20% Weight)</span>
+                          <span style={{ fontWeight: '700', color: 'hsl(var(--accent-secondary))' }}>{hybridRating.tmdb_score ? hybridRating.tmdb_score.toFixed(1) : (selectedMovie.vote_average ? selectedMovie.vote_average.toFixed(1) : 'N/A')}/10</span>
+                        </div>
+                        <div className="bar-track">
+                          <div className="bar-fill" style={{ width: `${(hybridRating.tmdb_score || selectedMovie.vote_average || 7.0) * 10}%`, backgroundColor: 'hsl(var(--accent-secondary))' }}></div>
+                        </div>
+                      </div>
+
+                      {/* Metacritic */}
+                      <div className="bar-item">
+                        <div className="bar-label-row">
+                          <span style={{ color: 'hsl(var(--text-main))', fontWeight: '600' }}>Metacritic Score (10% Weight)</span>
+                          <span style={{ fontWeight: '700', color: '#f87171' }}>{hybridRating.metacritic_score ? (hybridRating.metacritic_score * 10).toFixed(0) : (selectedMovie.metacritic_score ? (selectedMovie.metacritic_score * 10).toFixed(0) : 'N/A')}/100</span>
+                        </div>
+                        <div className="bar-track">
+                          <div className="bar-fill" style={{ width: `${(hybridRating.metacritic_score || selectedMovie.metacritic_score || 7.0) * 10}%`, backgroundColor: '#f87171' }}></div>
+                        </div>
+                      </div>
+
+                      {/* NLP Review Sentiment */}
+                      <div className="bar-item">
+                        <div className="bar-label-row">
+                          <span style={{ color: 'hsl(var(--text-main))', fontWeight: '600' }}>NLP Review Sentiment (30% Weight)</span>
+                          <span style={{ fontWeight: '700', color: '#4ade80' }}>{((hybridRating.sentiment_avg_polarity || 0.4) * 5 + 5).toFixed(1)}/10</span>
+                        </div>
+                        <div className="bar-track">
+                          <div className="bar-fill" style={{ width: `${(((hybridRating.sentiment_avg_polarity || 0.4) * 5 + 5)) * 10}%`, backgroundColor: '#4ade80' }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Similar Recommendations cosine embeddings matching */}
+                {recommendations.length > 0 && (
+                  <div className="recommendations-container glass-panel">
+                    <h3 className="catalog-title" style={{ marginBottom: '18px' }}>
+                      Similar Recommendations (TF-IDF Cosine Match)
+                    </h3>
+                    <div className="recommendations-grid">
+                      {recommendations.map((rec) => (
+                        <div
+                          key={rec.id}
+                          onClick={() => {
+                            fetchMovieDetails(rec.id);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          className="rec-card glass-panel"
+                        >
+                          <div className="rec-poster">
+                            {rec.poster_path ? (
+                              <img
+                                src={rec.poster_path.startsWith('http') ? rec.poster_path : `https://image.tmdb.org/t/p/w200${rec.poster_path}`}
+                                alt={rec.title}
+                              />
+                            ) : (
+                              <div className="no-poster-text">NO POSTER</div>
+                            )}
+                          </div>
+                          <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                            <div>
+                              <h4 style={{ fontSize: '13px', fontWeight: '700', color: 'hsl(var(--text-main))', marginBottom: '6px', display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.2' }}>{rec.title}</h4>
+                            </div>
+                            <div style={{
+                              marginTop: '10px',
+                              padding: '5px 8px',
+                              borderRadius: '6px',
+                              backgroundColor: 'hsla(var(--accent-primary) / 0.1)',
+                              border: '1px solid hsla(var(--accent-primary) / 0.2)',
+                              color: 'hsl(var(--accent-primary))',
+                              fontSize: '9px',
+                              fontWeight: '700',
+                              textAlign: 'center',
+                              lineHeight: '1.3'
+                            }}>
+                              {rec.recommendation_reason || 'Overview Similarity Match'}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
+            )}
 
-              <div className="movie-detail-content">
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
-                    <h2 className="movie-detail-title">{selectedMovie.title}</h2>
-                    <button 
-                      onClick={() => setCurrentPage('analytics')}
-                      className="nav-action-btn"
-                    >
-                      View Analytics &rarr;
-                    </button>
-                  </div>
-                  <p className="movie-detail-release">RELEASE DATE: {selectedMovie.release_date || 'N/A'}</p>
-                  <p className="movie-detail-overview">{selectedMovie.overview}</p>
-                </div>
-
-                <div>
-                  <button id="scraper-trigger-btn" onClick={triggerLiveScraper} className="scraper-button">
-                    Scrape Live Web Feedback
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Score Dashboard Grid */}
-            <div className="score-dashboard-grid">
-              
-              {/* Circular AI Composite Hybrid Gauge Card */}
-              <div className="gauge-card glass-panel">
-                <h3 className="catalog-title text-gradient">Composite AI Rating</h3>
-                
-                <div className="relative" style={{ width: '160px', height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '16px 0', position: 'relative' }}>
-                  <svg width="100%" height="100%" viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
-                    <circle cx="50" cy="50" r="40" fill="transparent" stroke="rgba(255,255,255,0.04)" strokeWidth="8" />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="transparent"
-                      stroke="url(#accentGradient)"
-                      strokeWidth="8"
-                      strokeDasharray={2 * Math.PI * 40}
-                      strokeDashoffset={2 * Math.PI * 40 * (1 - compositeScore / 10.0)}
-                      strokeLinecap="round"
-                      style={{ transition: 'stroke-dashoffset 1s ease-in-out' }}
-                    />
-                    <defs>
-                      <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="hsl(var(--accent-purple))" />
-                        <stop offset="100%" stopColor="hsl(var(--accent-cyan))" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                  <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <span style={{ fontSize: '38px', fontWeight: '800', color: 'white', letterSpacing: '-0.03em', lineHeight: '1' }}>{compositeScore.toFixed(2)}</span>
-                    <span style={{ fontSize: '9px', color: 'hsl(var(--accent-cyan))', fontFamily: 'monospace', letterSpacing: '0.15em', marginTop: '4px' }}>FINAL RATING</span>
-                  </div>
-                </div>
-
-                <div style={{ width: '100%', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
-                  <p style={{ fontSize: '10px', fontFamily: 'monospace', color: 'hsl(var(--text-muted))', lineHeight: '1.4' }}>
-                    Weighted Combination:<br/>0.4(IMDb) + 0.2(TMDb) + 0.1(Meta) + 0.3(NLP)
+            {/* PAGE 3: ANALYTICS (Recharts Grid visual layouts) */}
+            {currentPage === 'analytics' && selectedMovie && (
+              <div className="analytics-section fade-in">
+                <div style={{ marginBottom: '24px' }}>
+                  <h2 className="movie-detail-title" style={{ fontSize: '24px', marginBottom: '6px' }}>
+                    Visual Analytics: <span className="accent-gradient">{selectedMovie.title}</span>
+                  </h2>
+                  <p style={{ color: 'hsl(var(--text-muted))', fontSize: '12.5px' }}>
+                    Interactive charts aggregating sentiment distributions, dynamic aspect polarity, and review pool authenticity models.
                   </p>
                 </div>
-              </div>
 
-              {/* Platform breakdownProgress Bars */}
-              <div className="breakdown-card glass-panel">
-                <h3 className="catalog-title text-gradient" style={{ marginBottom: '16px' }}>Platform Breakdown</h3>
-                
-                <div className="bar-list">
-                  {/* IMDb */}
-                  <div className="bar-item">
-                    <div className="bar-label-row">
-                      <span style={{ color: '#cbd5e1' }}>IMDb Score (40% Weight)</span>
-                      <span style={{ fontWeight: '700', color: '#facc15' }}>{hybridRating.imdb_score ? hybridRating.imdb_score.toFixed(1) : (selectedMovie.imdb_rating ? selectedMovie.imdb_rating.toFixed(1) : 'N/A')}/10</span>
-                    </div>
-                    <div className="bar-track">
-                      <div className="bar-fill" style={{ width: `${(hybridRating.imdb_score || selectedMovie.imdb_rating || 8.0) * 10}%`, backgroundColor: '#facc15' }}></div>
+                {/* Grid Visual Charts */}
+                <div className="analytics-charts-grid">
+                  
+                  {/* Rating comparison */}
+                  <div className="chart-card glass-panel">
+                    <h4 className="chart-card-title text-gradient">Score Comparisons</h4>
+                    <p className="chart-card-desc">Normalized scores out of 10 comparing primary catalog providers.</p>
+                    <div className="chart-wrapper">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={ratingComparisonData} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                          <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
+                          <YAxis domain={[0, 10]} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
+                          <Tooltip contentStyle={{ backgroundColor: 'rgba(13,17,28,0.95)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff' }} />
+                          <Bar dataKey="Score" radius={[4, 4, 0, 0]}>
+                            {ratingComparisonData.map((entry, index) => {
+                              const colors = ['#fbbf24', 'hsl(var(--accent-secondary))', '#f87171', '#4ade80', 'hsl(var(--accent-primary))'];
+                              return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
+                            })}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
                     </div>
                   </div>
 
-                  {/* TMDb */}
-                  <div className="bar-item">
-                    <div className="bar-label-row">
-                      <span style={{ color: '#cbd5e1' }}>TMDb Score (20% Weight)</span>
-                      <span style={{ fontWeight: '700', color: '#22d3ee' }}>{hybridRating.tmdb_score ? hybridRating.tmdb_score.toFixed(1) : (selectedMovie.vote_average ? selectedMovie.vote_average.toFixed(1) : 'N/A')}/10</span>
+                  {/* Sentiment Pie */}
+                  <div className="chart-card glass-panel">
+                    <h4 className="chart-card-title text-gradient">Vibe Distribution</h4>
+                    <p className="chart-card-desc">Volume of positive, negative, and neutral review classifications.</p>
+                    <div className="chart-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {sentimentPieData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={sentimentPieData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={60}
+                              outerRadius={80}
+                              paddingAngle={5}
+                              dataKey="value"
+                            >
+                              {sentimentPieData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip contentStyle={{ backgroundColor: 'rgba(13,17,28,0.95)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff' }} />
+                            <Legend verticalAlign="bottom" height={36} tick={{ fill: 'hsl(var(--text-main))', fontSize: 10 }} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div style={{ color: 'hsl(var(--text-muted))', fontSize: '12px' }}>Scrape feedback to compile sentiment ratio pie.</div>
+                      )}
                     </div>
-                    <div className="bar-track">
-                      <div className="bar-fill" style={{ width: `${(hybridRating.tmdb_score || selectedMovie.vote_average || 7.0) * 10}%`, backgroundColor: '#22d3ee' }}></div>
+                  </div>
+
+                  {/* Aspect Based (ABSA) aspect scores */}
+                  <div className="chart-card glass-panel">
+                    <h4 className="chart-card-title text-gradient">Aspect breakdowns (ABSA)</h4>
+                    <p className="chart-card-desc">Average sentiment ratings across key aesthetic film vectors.</p>
+                    <div className="chart-wrapper">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={aspectData} layout="vertical" margin={{ top: 15, right: 10, left: 10, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                          <XAxis type="number" domain={[0, 10]} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
+                          <YAxis dataKey="name" type="category" tick={{ fill: 'hsl(var(--text-main))', fontSize: 10 }} axisLine={false} tickLine={false} width={80} />
+                          <Tooltip contentStyle={{ backgroundColor: 'rgba(13,17,28,0.95)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff' }} />
+                          <Bar dataKey="Score" radius={[0, 4, 4, 0]} barSize={12}>
+                            {aspectData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
                     </div>
                   </div>
 
-                  {/* Metacritic */}
-                  <div className="bar-item">
-                    <div className="bar-label-row">
-                      <span style={{ color: '#cbd5e1' }}>Metacritic Score (10% Weight)</span>
-                      <span style={{ fontWeight: '700', color: '#f87171' }}>{hybridRating.metacritic_score ? (hybridRating.metacritic_score * 10).toFixed(0) : (selectedMovie.metacritic_score ? (selectedMovie.metacritic_score * 10).toFixed(0) : 'N/A')}/100</span>
+                  {/* Integrity Audit circular shield card */}
+                  <div className="chart-card glass-panel" style={{ justifyContent: 'space-between' }}>
+                    <div>
+                      <h4 className="chart-card-title text-gradient">Pool Authenticity Shield</h4>
+                      <p className="chart-card-desc">Credibility metrics evaluating duplicated text and automation flags.</p>
                     </div>
-                    <div className="bar-track">
-                      <div className="bar-fill" style={{ width: `${(hybridRating.metacritic_score || selectedMovie.metacritic_score || 7.0) * 10}%`, backgroundColor: '#f87171' }}></div>
-                    </div>
-                  </div>
-
-                  {/* NLP Review Sentiment */}
-                  <div className="bar-item">
-                    <div className="bar-label-row">
-                      <span style={{ color: '#cbd5e1' }}>NLP Review Sentiment (30% Weight)</span>
-                      <span style={{ fontWeight: '700', color: '#4ade80' }}>{((hybridRating.sentiment_avg_polarity || 0.4) * 5 + 5).toFixed(1)}/10</span>
-                    </div>
-                    <div className="bar-track">
-                      <div className="bar-fill" style={{ width: `${(((hybridRating.sentiment_avg_polarity || 0.4) * 5 + 5)) * 10}%`, backgroundColor: '#4ade80' }}></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-            {/* AI Recommendations Section */}
-            {recommendations.length > 0 && (
-              <div className="recommendations-container glass-panel" style={{ padding: '24px' }}>
-                <h3 className="catalog-title text-gradient" style={{ marginBottom: '20px', fontSize: '13px' }}>
-                  Similar Movies (TF-IDF Cosine Overview Embeddings)
-                </h3>
-                
-                <div className="recommendations-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '20px' }}>
-                  {recommendations.map((rec) => (
-                    <div
-                      key={rec.id}
-                      onClick={() => {
-                        fetchMovieDetails(rec.id);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      className="rec-card glass-panel"
-                    >
-                      <div className="rec-poster">
-                        {rec.poster_path ? (
-                          <img
-                            src={rec.poster_path.startsWith('http') ? rec.poster_path : `https://image.tmdb.org/t/p/w200${rec.poster_path}`}
-                            alt={rec.title}
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexGrow: 1, padding: '10px 0' }}>
+                      <div className="integrity-score-ring" style={{ width: '90px', height: '90px', flexShrink: 0 }}>
+                        <svg width="100%" height="100%" viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
+                          <circle cx="50" cy="50" r="40" fill="transparent" stroke="rgba(255,255,255,0.03)" strokeWidth="8" />
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r="40"
+                            fill="transparent"
+                            stroke={integrity.integrity_score > 85 ? '#22c55e' : (integrity.integrity_score > 60 ? '#fbbf24' : '#ef4444')}
+                            strokeWidth="8"
+                            strokeDasharray={2 * Math.PI * 40}
+                            strokeDashoffset={2 * Math.PI * 40 * (1 - integrity.integrity_score / 100.0)}
+                            strokeLinecap="round"
                           />
-                        ) : (
-                          <div className="no-poster-text">NO POSTER</div>
-                        )}
+                        </svg>
+                        <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <span style={{ fontSize: '18px', fontWeight: '800', color: 'hsl(var(--text-main))' }}>{integrity.integrity_score}%</span>
+                          <span style={{ fontSize: '6.5px', color: 'hsl(var(--text-muted))', letterSpacing: '0.05em', fontWeight: 'bold' }}>CREDIBILITY</span>
+                        </div>
                       </div>
-                      <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                        <div>
-                          <h4 style={{ fontSize: '13px', fontWeight: '700', color: '#fff', marginBottom: '6px', display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.2' }}>{rec.title}</h4>
-                          <span className="badge badge-tmdb" style={{ fontSize: '8px', padding: '1px 6px' }}>
-                            TMDb: {rec.vote_average ? rec.vote_average.toFixed(1) : '0.0'}
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flexGrow: 1, fontSize: '11px', fontFamily: 'monospace' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed hsla(var(--text-main)/0.06)', paddingBottom: '4px' }}>
+                          <span style={{ color: 'hsl(var(--text-muted))' }}>Authenticity Rank:</span>
+                          <span style={{ fontWeight: 'bold', color: integrity.integrity_score > 85 ? '#4ade80' : '#fbbf24' }}>
+                            {integrity.integrity_score > 85 ? 'SECURED' : 'CHECKED'}
                           </span>
                         </div>
-                        
-                        {/* Glowing violet reason badge */}
-                        <div style={{
-                          marginTop: '12px',
-                          padding: '6px 8px',
-                          borderRadius: '6px',
-                          backgroundColor: 'rgba(167, 139, 250, 0.1)',
-                          border: '1px solid rgba(167, 139, 250, 0.2)',
-                          color: '#c084fc',
-                          fontSize: '9px',
-                          fontWeight: '700',
-                          textAlign: 'center',
-                          lineHeight: '1.3'
-                        }}>
-                          {rec.recommendation_reason || 'Overview similarity match'}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed hsla(var(--text-main)/0.06)', paddingBottom: '4px' }}>
+                          <span style={{ color: 'hsl(var(--text-muted))' }}>Spam Flagged:</span>
+                          <span style={{ fontWeight: 'bold', color: integrity.spam_count > 0 ? '#fbbf24' : 'hsl(var(--text-muted))' }}>{integrity.spam_count}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed hsla(var(--text-main)/0.06)', paddingBottom: '4px' }}>
+                          <span style={{ color: 'hsl(var(--text-muted))' }}>Duplicates Caught:</span>
+                          <span style={{ fontWeight: 'bold', color: integrity.duplicate_count > 0 ? '#fbbf24' : 'hsl(var(--text-muted))' }}>{integrity.duplicate_count}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '4px' }}>
+                          <span style={{ color: 'hsl(var(--text-muted))' }}>Automated Bots:</span>
+                          <span style={{ fontWeight: 'bold', color: integrity.bot_flag_count > 0 ? '#ef4444' : 'hsl(var(--text-muted))' }}>{integrity.bot_flag_count}</span>
                         </div>
                       </div>
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Audience Mood Bar Charts */}
+                  <div className="chart-card glass-panel">
+                    <h4 className="chart-card-title text-gradient">Audience Mood Gauge</h4>
+                    <p className="chart-card-desc">Calculated emotional signals detected in aggregated review texts.</p>
+                    <div className="mood-analysis-container">
+                      <div className="mood-bar-item">
+                        <div className="mood-bar-label-row">
+                          <span style={{ color: 'hsl(var(--text-main))' }}>Narrative Focus</span>
+                          <span style={{ color: '#a78bfa' }}>{emotionMetrics.narrative}%</span>
+                        </div>
+                        <div className="mood-bar-track">
+                          <div className="mood-bar-fill" style={{ width: `${emotionMetrics.narrative}%`, background: '#a78bfa' }}></div>
+                        </div>
+                      </div>
+                      <div className="mood-bar-item">
+                        <div className="mood-bar-label-row">
+                          <span style={{ color: 'hsl(var(--text-main))' }}>Cinema Joy & Excitement</span>
+                          <span style={{ color: '#22c55e' }}>{emotionMetrics.joy}%</span>
+                        </div>
+                        <div className="mood-bar-track">
+                          <div className="mood-bar-fill" style={{ width: `${emotionMetrics.joy}%`, background: '#22c55e' }}></div>
+                        </div>
+                      </div>
+                      <div className="mood-bar-item">
+                        <div className="mood-bar-label-row">
+                          <span style={{ color: 'hsl(var(--text-main))' }}>Surprise & Speculation</span>
+                          <span style={{ color: '#facc15' }}>{emotionMetrics.surprise}%</span>
+                        </div>
+                        <div className="mood-bar-track">
+                          <div className="mood-bar-fill" style={{ width: `${emotionMetrics.surprise}%`, background: '#facc15' }}></div>
+                        </div>
+                      </div>
+                      <div className="mood-bar-item">
+                        <div className="mood-bar-label-row">
+                          <span style={{ color: 'hsl(var(--text-main))' }}>Dramatic Tension</span>
+                          <span style={{ color: '#ef4444' }}>{emotionMetrics.tension}%</span>
+                        </div>
+                        <div className="mood-bar-track">
+                          <div className="mood-bar-fill" style={{ width: `${emotionMetrics.tension}%`, background: '#ef4444' }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Positivity Area Timeline */}
+                  <div className="chart-card glass-panel">
+                    <h4 className="chart-card-title text-gradient">Chronological Sentiment Vibe</h4>
+                    <p className="chart-card-desc">Moving average of review sentiment ratings over the extracted review timeline.</p>
+                    <div className="chart-wrapper">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={positivityTrendData} margin={{ top: 20, right: 10, left: -25, bottom: 5 }}>
+                          <defs>
+                            <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="hsl(var(--accent-primary))" stopOpacity={0.4} />
+                              <stop offset="95%" stopColor="hsl(var(--accent-primary))" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                          <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
+                          <YAxis domain={[0, 10]} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
+                          <Tooltip contentStyle={{ backgroundColor: 'rgba(13,17,28,0.95)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff' }} />
+                          <Area type="monotone" dataKey="Vibe Score" stroke="hsl(var(--accent-primary))" strokeWidth={2} fillOpacity={1} fill="url(#trendGradient)" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
                 </div>
               </div>
             )}
-          </section>
-        )}
 
-        {/* PAGE 3: ANALYTICS (Visual Recharts Graphs & Spam Integrity Shield) */}
-        {currentPage === 'analytics' && selectedMovie && (
-          <section className="analytics-section">
-            <div className="analytics-header">
-              <h2 className="movie-detail-title" style={{ fontSize: '24px', marginBottom: '8px' }}>
-                Visual Analytics: <span className="accent-gradient">{selectedMovie.title}</span>
-              </h2>
-              <p style={{ color: 'hsl(var(--text-muted))', fontSize: '13px', marginBottom: '24px' }}>
-                Interactive data visualizations showing public sentiment distributions, rating comparisons, aspect sentiment, and review integrity audits.
-              </p>
-            </div>
-
-            {/* Visual Analytics Grid */}
-            <div className="analytics-charts-grid">
-              
-              {/* Graph 1: Rating Comparison Bar Chart */}
-              <div className="chart-card glass-panel">
-                <h3 className="chart-card-title text-gradient">Rating Platform Comparison</h3>
-                <p className="chart-card-desc">Comparison of normalized ratings (out of 10) across sources and the final AI aggregate.</p>
-                <div className="chart-wrapper">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={ratingComparisonData} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                      <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
-                      <YAxis domain={[0, 10]} tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
-                      <Tooltip 
-                        contentStyle={{ backgroundColor: '#0d111c', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff' }}
-                        cursor={{ fill: 'rgba(255,255,255,0.02)' }}
-                      />
-                      <Bar dataKey="Score" radius={[4, 4, 0, 0]}>
-                        {ratingComparisonData.map((entry, index) => {
-                          const colors = ['#facc15', '#22d3ee', '#f87171', '#4ade80', '#c084fc'];
-                          return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
-                        })}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* Graph 2: Sentiment Pie Chart */}
-              <div className="chart-card glass-panel">
-                <h3 className="chart-card-title text-gradient">Web Sentiment Distribution</h3>
-                <p className="chart-card-desc">Proportional sentiment categories analyzed from scraped web feedback.</p>
-                <div className="chart-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {sentimentPieData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={sentimentPieData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={80}
-                          paddingAngle={5}
-                          dataKey="value"
+            {/* PAGE 4: REVIEWS (Dashboard listing spambot flags) */}
+            {currentPage === 'reviews' && selectedMovie && (
+              <div className="reviews-page-section fade-in">
+                
+                {/* Search filters toolbar */}
+                <div className="reviews-filter-card glass-panel">
+                  <div className="filter-row">
+                    <span className="filter-label">Filter Vibe</span>
+                    <div className="filter-btns">
+                      {['ALL', 'POSITIVE', 'NEUTRAL', 'NEGATIVE'].map(sentiment => (
+                        <button
+                          key={sentiment}
+                          onClick={() => {
+                            setReviewFilter(sentiment);
+                            addToast(`Filtering reviews by ${sentiment}`, "TABLE SYNC", "cyan");
+                          }}
+                          className={`filter-btn ${reviewFilter === sentiment ? 'active' : ''}`}
                         >
-                          {sentimentPieData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: '#0d111c', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff' }}
-                        />
-                        <Legend verticalAlign="bottom" height={36} tick={{ fill: '#cbd5e1', fontSize: 11 }} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div style={{ color: '#64748b', fontSize: '13px' }}>No sentiment data available. Try scraping live feedback first.</div>
-                  )}
-                </div>
-              </div>
-
-              {/* Graph 3: Aspect-Based Sentiment Analysis ABSA */}
-              <div className="chart-card glass-panel">
-                <h3 className="chart-card-title text-gradient">Aspect-Based Sentiment (ABSA)</h3>
-                <p className="chart-card-desc">Average NLP sentiment scores (out of 10) generated across key film dimensions.</p>
-                <div className="chart-wrapper">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={aspectData} layout="vertical" margin={{ top: 15, right: 10, left: 10, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                      <XAxis type="number" domain={[0, 10]} tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
-                      <YAxis dataKey="name" type="category" tick={{ fill: '#cbd5e1', fontSize: 11 }} axisLine={false} tickLine={false} width={80} />
-                      <Tooltip 
-                        contentStyle={{ backgroundColor: '#0d111c', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff' }}
-                        cursor={{ fill: 'rgba(255,255,255,0.02)' }}
-                      />
-                      <Bar dataKey="Score" radius={[0, 4, 4, 0]} barSize={14}>
-                        {aspectData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* Security and Review Integrity Shield Card */}
-              <div className="chart-card glass-panel">
-                <h3 className="chart-card-title text-gradient">Review Pool Integrity Shield</h3>
-                <p className="chart-card-desc">Audit analytics screening spambot patterns, duplicates, and low effort posts.</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexGrow: 1 }}>
-                  {/* Integrity Ring */}
-                  <div className="integrity-score-ring" style={{ width: '100px', height: '100px', flexShrink: 0 }}>
-                    <svg width="100%" height="100%" viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
-                      <circle cx="50" cy="50" r="40" fill="transparent" stroke="rgba(255,255,255,0.03)" strokeWidth="8" />
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="40"
-                        fill="transparent"
-                        stroke={integrity.integrity_score > 85 ? '#22c55e' : (integrity.integrity_score > 60 ? '#f59e0b' : '#ef4444')}
-                        strokeWidth="8"
-                        strokeDasharray={2 * Math.PI * 40}
-                        strokeDashoffset={2 * Math.PI * 40 * (1 - integrity.integrity_score / 100.0)}
-                        strokeLinecap="round"
-                        style={{ transition: 'stroke-dashoffset 1s ease-in-out' }}
-                      />
-                    </svg>
-                    <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      <span style={{ fontSize: '20px', fontWeight: '800', color: 'white' }}>{integrity.integrity_score}%</span>
-                      <span style={{ fontSize: '7px', color: '#cbd5e1', letterSpacing: '0.05em' }}>CREDIBILITY</span>
+                          {sentiment === 'ALL' ? 'Show All' : sentiment.charAt(0) + sentiment.slice(1).toLowerCase()}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Audit List */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flexGrow: 1, fontSize: '11.5px', fontFamily: 'monospace' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255,255,255,0.06)', paddingBottom: '4px' }}>
-                      <span style={{ color: '#cbd5e1' }}>Pool Authenticity:</span>
-                      <span style={{ fontWeight: 'bold', color: integrity.integrity_score > 85 ? '#4ade80' : '#fbbf24' }}>
-                        {integrity.integrity_score > 85 ? 'HIGH' : 'CHECKED'}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255,255,255,0.06)', paddingBottom: '4px' }}>
-                      <span style={{ color: '#94a3b8' }}>Scraped Spam caught:</span>
-                      <span style={{ fontWeight: 'bold', color: integrity.spam_count > 0 ? '#fbbf24' : '#64748b' }}>{integrity.spam_count}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed rgba(255,255,255,0.06)', paddingBottom: '4px' }}>
-                      <span style={{ color: '#94a3b8' }}>Repeated duplicates:</span>
-                      <span style={{ fontWeight: 'bold', color: integrity.duplicate_count > 0 ? '#fbbf24' : '#64748b' }}>{integrity.duplicate_count}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '4px' }}>
-                      <span style={{ color: '#94a3b8' }}>Automated bots:</span>
-                      <span style={{ fontWeight: 'bold', color: integrity.bot_flag_count > 0 ? '#ef4444' : '#64748b' }}>{integrity.bot_flag_count}</span>
-                    </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                    <label className="toggle-switch-container">
+                      <input 
+                        type="checkbox" 
+                        checked={hideSpam}
+                        onChange={(e) => {
+                          setHideSpam(e.target.checked);
+                          addToast(e.target.checked ? "Spam filter active" : "Displaying moderated review logs", "HUD FILTER", "amber");
+                        }}
+                        className="toggle-switch-input"
+                      />
+                      <span className="toggle-switch-label" style={{ fontSize: '11.5px', fontWeight: 'bold' }}>Hide Spam/Bots</span>
+                    </label>
+                    
+                    <input
+                      type="text"
+                      placeholder="Filter by keyword (e.g. CGI)..."
+                      value={reviewSearchQuery}
+                      onChange={(e) => setReviewSearchQuery(e.target.value)}
+                      className="review-search-input"
+                    />
                   </div>
                 </div>
-              </div>
 
-              {/* Graph 5: Positivity Trend Area Chart */}
-              <div className="chart-card glass-panel" style={{ gridColumn: '1 / -1' }}>
-                <h3 className="chart-card-title text-gradient">Public Sentiment Trend (Chronological)</h3>
-                <p className="chart-card-desc">Running moving average of review sentiment scores over the extracted review timeline.</p>
-                <div className="chart-wrapper">
-                  {positivityTrendData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={positivityTrendData} margin={{ top: 10, right: 20, left: -20, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="colorSentiment" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="hsl(var(--accent-purple))" stopOpacity={0.4}/>
-                            <stop offset="95%" stopColor="hsl(var(--accent-purple))" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                        <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
-                        <YAxis domain={[0, 10]} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: '#0d111c', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff' }}
-                        />
-                        <Area type="monotone" dataKey="Sentiment Score" stroke="hsl(var(--accent-purple))" strokeWidth={2.5} fillOpacity={1} fill="url(#colorSentiment)" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b', fontSize: '13px' }}>
-                      No reviews available to compile a sentiment trend. Click scrape on Movie Details to crawl reviews.
-                    </div>
-                  )}
-                </div>
-              </div>
-
-            </div>
-          </section>
-        )}
-
-        {/* PAGE 4: REVIEWS (Extracted Review Dashboard & Sentiment Search/Filter Engine) */}
-        {currentPage === 'reviews' && selectedMovie && (
-          <section className="reviews-page-section">
-            <div className="reviews-page-header">
-              <h2 className="movie-detail-title" style={{ fontSize: '24px', marginBottom: '8px' }}>
-                Extracted Reviews & Feedback: <span className="accent-gradient">{selectedMovie.title}</span>
-              </h2>
-              <p style={{ color: 'hsl(var(--text-muted))', fontSize: '13px', marginBottom: '24px' }}>
-                Browse and filter through all scraped web reviews from IMDb, Reddit, Letterboxd, and Rotten Tomatoes.
-              </p>
-            </div>
-
-            {/* Filters Bar & Keyword Search */}
-            <div className="reviews-filter-card glass-panel">
-              <div className="filter-row">
-                <span className="filter-label">Sentiment Class:</span>
-                <div className="filter-btns">
-                  {['ALL', 'POSITIVE', 'NEUTRAL', 'NEGATIVE'].map((sentimentClass) => (
-                    <button
-                      key={sentimentClass}
-                      onClick={() => setReviewFilter(sentimentClass)}
-                      className={`filter-btn ${reviewFilter === sentimentClass ? 'active' : ''}`}
-                    >
-                      {sentimentClass}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Spambot Filter toggle switch */}
-              <div className="filter-row">
-                <span className="filter-label">Spam Shield:</span>
-                <label className="toggle-switch-container">
-                  <input
-                    type="checkbox"
-                    checked={hideSpam}
-                    onChange={(e) => setHideSpam(e.target.checked)}
-                    className="toggle-switch-input"
-                  />
-                  <span className="toggle-switch-label">Hide Flagged Reviews ({spamReviewsCount})</span>
-                </label>
-              </div>
-
-              <div className="filter-row">
-                <span className="filter-label">Search Text:</span>
-                <input
-                  type="text"
-                  placeholder="Filter reviews by keyword..."
-                  value={reviewSearchQuery}
-                  onChange={(e) => setReviewSearchQuery(e.target.value)}
-                  className="review-search-input"
-                />
-              </div>
-            </div>
-
-            {/* Reviews stream */}
-            <div className="reviews-list-container">
-              {filteredReviews.length > 0 ? (
-                <div className="reviews-grid-full">
-                  {filteredReviews.map((r, idx) => (
-                    <div key={r.id || idx} className="review-item-full glass-panel">
-                      
-                      {/* Warning header for spam reviews */}
-                      {r.moderation?.is_spam && (
-                        <div className="spam-warning-banner">
-                          <span>⚠️ SPAM SHIELD WARNING:</span>
-                          <span className="spam-warning-reasons">{r.moderation.spam_reasons.join(', ')}</span>
-                        </div>
-                      )}
-
-                      <div className="review-header">
-                        <div className="review-author-row">
-                          <span className="review-avatar">{r.reviewer.charAt(0).toUpperCase()}</span>
-                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span className="review-author">{r.reviewer}</span>
-                            <span className="review-source-label">{r.source}</span>
-                          </div>
-                        </div>
+                {/* Reviews Stream list */}
+                <div className="reviews-list-container">
+                  {filteredReviews.length > 0 ? (
+                    <div className="reviews-grid-full">
+                      {filteredReviews.map((r) => {
+                        const aspectScores = r.aspect_scores || computeMockAspectScores([r]);
+                        const isModeratedSpam = r.moderation?.is_spam || r.moderation?.is_bot;
+                        const moderationReasons = r.moderation?.spam_reasons || [];
                         
-                        <div className="review-rating-row">
-                          <span className={`review-badge ${
-                            r.sentiment_label === 'POSITIVE' 
-                              ? 'review-badge-pos'
-                              : r.sentiment_label === 'NEGATIVE'
-                              ? 'review-badge-neg'
-                              : 'review-badge-neu'
-                          }`}>
-                            {r.sentiment_label || 'NEUTRAL'}
-                          </span>
-                          <span className="review-score">
-                            Rating: {r.rating ? r.rating.toFixed(1) : (r.scraped_rating ? r.scraped_rating.toFixed(1) : 'N/A')}/10
-                          </span>
-                        </div>
-                      </div>
+                        return (
+                          <div key={r.id} className="review-item-full glass-panel">
+                            {/* Moderation spambot alert block */}
+                            {isModeratedSpam && (
+                              <div className="spam-warning-banner">
+                                <span className="spam-warning-icon">⚠</span>
+                                <span>MODERATOR FLAG IN REVIEW POOL:</span>
+                                <span className="spam-warning-reasons">({moderationReasons.join(", ")})</span>
+                              </div>
+                            )}
 
-                      <p className="review-body-full">{r.review_text}</p>
-                      
-                      {/* ABSA Aspect Scores Breakdown Grid */}
-                      <div className="review-aspects-grid">
-                        {Object.entries(getReviewAspectScores(r)).map(([aspect, score]) => {
-                          const colors = {
-                            acting: 'rgba(250, 204, 21, 0.08)',
-                            story: 'rgba(34, 211, 238, 0.08)',
-                            music: 'rgba(167, 139, 250, 0.08)',
-                            visual_effects: 'rgba(248, 113, 113, 0.08)',
-                            direction: 'rgba(74, 222, 128, 0.08)'
-                          };
-                          const textColors = {
-                            acting: '#facc15',
-                            story: '#22d3ee',
-                            music: '#a78bfa',
-                            visual_effects: '#f87171',
-                            direction: '#4ade80'
-                          };
-                          const label = aspect.replace('_', ' ').toUpperCase();
-                          return (
-                            <div key={aspect} className="review-aspect-badge" style={{ backgroundColor: colors[aspect], color: textColors[aspect], border: `1px solid ${textColors[aspect]}20` }}>
-                              <span className="aspect-badge-name">{label}:</span>
-                              <span className="aspect-badge-score">{score.toFixed(1)}</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                              <div className="review-author-row">
+                                <div className="review-avatar">
+                                  {r.reviewer.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <span style={{ fontSize: '13.5px', fontWeight: '700', color: 'hsl(var(--text-main))' }}>@{r.reviewer}</span>
+                                  <div className="review-source-label">Source: {r.is_scraped ? `Scraped feed` : `CineScore User`}</div>
+                                </div>
+                              </div>
+                              
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span className={`review-badge review-badge-${r.sentiment_label?.toLowerCase()}`}>
+                                  {r.sentiment_label}
+                                </span>
+                                <span className="review-score">{r.rating ? r.rating.toFixed(1) : 'N/A'}/10</span>
+                              </div>
                             </div>
-                          );
-                        })}
-                      </div>
+
+                            <p className="review-body-full">{r.review_text}</p>
+
+                            {/* Aspect Sentiment breakdown grid */}
+                            <div className="review-aspects-grid">
+                              <span style={{ fontSize: '9px', fontFamily: 'monospace', fontWeight: 'bold', marginRight: '6px', color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center' }}>Aspect Sentiment:</span>
+                              <div className="review-aspect-badge" style={{ background: 'rgba(250, 204, 21, 0.08)', color: '#facc15', border: '1px solid rgba(250, 204, 21, 0.2)' }}>
+                                <span className="aspect-badge-name">Acting</span>
+                                <span className="aspect-badge-score">{aspectScores.acting}</span>
+                              </div>
+                              <div className="review-aspect-badge" style={{ background: 'rgba(34, 211, 238, 0.08)', color: '#22d3ee', border: '1px solid rgba(34, 211, 238, 0.2)' }}>
+                                <span className="aspect-badge-name">Story</span>
+                                <span className="aspect-badge-score">{aspectScores.story}</span>
+                              </div>
+                              <div className="review-aspect-badge" style={{ background: 'rgba(167, 139, 250, 0.08)', color: '#a78bfa', border: '1px solid rgba(167, 139, 250, 0.2)' }}>
+                                <span className="aspect-badge-name">Music</span>
+                                <span className="aspect-badge-score">{aspectScores.music}</span>
+                              </div>
+                              <div className="review-aspect-badge" style={{ background: 'rgba(248, 113, 113, 0.08)', color: '#f87171', border: '1px solid rgba(248, 113, 113, 0.2)' }}>
+                                <span className="aspect-badge-name">Visuals</span>
+                                <span className="aspect-badge-score">{aspectScores.visual_effects || 8.0}</span>
+                              </div>
+                              <div className="review-aspect-badge" style={{ background: 'rgba(74, 222, 128, 0.08)', color: '#4ade80', border: '1px solid rgba(74, 222, 128, 0.2)' }}>
+                                <span className="aspect-badge-name">Direction</span>
+                                <span className="aspect-badge-score">{aspectScores.direction}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="no-reviews-fallback glass-panel">
-                  {reviews.length > 0 ? (
-                    "No reviews match your selected filter criteria."
                   ) : (
-                    "No reviews extracted yet. Click 'Scrape Live Web Feedback' on the Movie Details tab to crawl data."
+                    <div className="no-reviews-fallback glass-panel">
+                      No review logs found matching your filters. Try clearing keywords or web filters.
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
-          </section>
+              </div>
+            )}
+          </>
         )}
 
       </main>
 
-      {/* Page Footer */}
-      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '24px', paddingBottom: '32px', marginTop: '48px', textAlign: 'center', fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
-        <p>&copy; 2026 CINE.AI - Hybrid Rating Platform. Orchestrating BeautifulSoup scrapers, PostgreSQL database cache, and Hugging Face DistilBERT NLP.</p>
-      </footer>
+      {/* Floating Action Settings Redesign Switcher panel */}
+      <div className="accent-switcher-panel">
+        {settingsOpen && (
+          <div className="accent-panel-drawer glass-panel">
+            {/* Accent theme picking dots */}
+            <div>
+              <span className="drawer-section-title">Accent Theme</span>
+              <div className="accent-dots-row">
+                <button onClick={() => { setAccentColor('purple'); addToast("Swapped to Violet Purple Theme", "SETTINGS UPDATE", "purple"); }} className={`accent-dot accent-dot-purple ${accentColor === 'purple' ? 'active' : ''}`} title="Violet Purple" />
+                <button onClick={() => { setAccentColor('cyan'); addToast("Swapped to Neon Cyan Theme", "SETTINGS UPDATE", "cyan"); }} className={`accent-dot accent-dot-cyan ${accentColor === 'cyan' ? 'active' : ''}`} title="Neon Cyan" />
+                <button onClick={() => { setAccentColor('amber'); addToast("Swapped to Gold Amber Theme", "SETTINGS UPDATE", "amber"); }} className={`accent-dot accent-dot-amber ${accentColor === 'amber' ? 'active' : ''}`} title="Gold Amber" />
+                <button onClick={() => { setAccentColor('emerald'); addToast("Swapped to Emerald Green Theme", "SETTINGS UPDATE", "emerald"); }} className={`accent-dot accent-dot-emerald ${accentColor === 'emerald' ? 'active' : ''}`} title="Emerald Green" />
+              </div>
+            </div>
+
+            {/* Dark/Light mode toggler */}
+            <div style={{ borderTop: '1px solid hsla(var(--text-main)/0.06)', paddingTop: '8px' }}>
+              <span className="drawer-section-title">Visual Mode</span>
+              <div className="theme-toggle-row">
+                <span style={{ fontSize: '11px', fontWeight: '600', color: 'hsl(var(--text-main))' }}>
+                  {themeMode === 'dark' ? 'Dark Theme' : 'Light Theme'}
+                </span>
+                <label className="toggle-switch-container">
+                  <input
+                    type="checkbox"
+                    checked={themeMode === 'light'}
+                    onChange={(e) => {
+                      const nextMode = e.target.checked ? 'light' : 'dark';
+                      setThemeMode(nextMode);
+                      addToast(`Swapped to ${nextMode.toUpperCase()} mode`, "THEME CHANGE", "purple");
+                    }}
+                    className="toggle-switch-input"
+                  />
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Settings gear trigger dot */}
+        <button 
+          onClick={() => setSettingsOpen(!settingsOpen)}
+          className="accent-switcher-btn"
+          title="Toggle Redesign controls"
+        >
+          ⚙
+        </button>
+      </div>
+
     </div>
   );
 }
