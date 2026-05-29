@@ -247,7 +247,12 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [scrapeStatus, setScrapeStatus] = useState('');
   const [backendAlive, setBackendAlive] = useState(false);
-  const [backendUrl] = useState('http://localhost:8000');
+  const [backendUrl] = useState(
+    import.meta.env.VITE_API_URL || 
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:8000'
+      : 'https://cinescore-api.onrender.com') // Change 'https://cinescore-api.onrender.com' to your actual deployed Render backend service URL
+  );
   
   // Custom Routing / Navigation Tabs
   const [currentPage, setCurrentPage] = useState('home'); // 'home', 'details', 'analytics', 'reviews'
