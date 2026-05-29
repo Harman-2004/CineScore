@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -255,6 +255,87 @@ export default function App() {
   const [skeletonLoading, setSkeletonLoading] = useState(false);
   const [scrapeStatus, setScrapeStatus] = useState('');
   const [backendAlive, setBackendAlive] = useState(false);
+
+  // Movie Autocomplete search states
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+  const searchRef = useRef(null);
+
+  // Debounced search suggestions fetch (300ms delay)
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    setSuggestionsLoading(true);
+    const delayDebounceFn = setTimeout(() => {
+      if (backendAlive) {
+        fetch(`${backendUrl}/movies?query=${encodeURIComponent(searchQuery)}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.results) {
+              setSuggestions(data.results.slice(0, 6));
+              setShowSuggestions(true);
+            }
+            setSuggestionsLoading(false);
+          })
+          .catch(err => {
+            console.error("Suggestions fetch failed:", err);
+            setSuggestionsLoading(false);
+          });
+      } else {
+        const matches = FALLBACK_MOVIES.filter(m => 
+          m.title.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        setSuggestions(matches.slice(0, 6));
+        setShowSuggestions(true);
+        setSuggestionsLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery, backendAlive]);
+
+  // Click outside to close suggestion dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Keyboard navigation controller
+  const handleKeyDown = (e) => {
+    if (!showSuggestions || suggestions.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setFocusedIndex(prev => (prev + 1) % suggestions.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setFocusedIndex(prev => (prev - 1 + suggestions.length) % suggestions.length);
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+      setFocusedIndex(-1);
+    } else if (e.key === 'Enter') {
+      if (focusedIndex >= 0 && focusedIndex < suggestions.length) {
+        e.preventDefault();
+        const selected = suggestions[focusedIndex];
+        fetchMovieDetails(selected.id);
+        setCurrentPage('details');
+        setSearchQuery('');
+        setShowSuggestions(false);
+        setFocusedIndex(-1);
+      }
+    }
+  };
   
   const [backendUrl] = useState(
     import.meta.env.VITE_API_URL || 
@@ -673,19 +754,71 @@ export default function App() {
         </nav>
 
         {/* Global Search Bar */}
-        <form onSubmit={handleSearchSubmit} className="search-form">
+        <form ref={searchRef} onSubmit={handleSearchSubmit} className="search-form">
           <input
             type="text"
             placeholder="Search movies (e.g. Inception)..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
             className="search-input"
           />
-          <button type="submit" className="search-button">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </button>
+          
+          {/* Autocomplete loader spinner indicator */}
+          {suggestionsLoading ? (
+            <div className="search-spinner-tiny animate-spin"></div>
+          ) : (
+            <button type="submit" className="search-button">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+          )}
+
+          {/* Autocomplete Dropdown List */}
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="search-suggestions-dropdown glass-panel">
+              {suggestions.map((item, idx) => {
+                const year = item.release_date ? item.release_date.split('-')[0] : 'N/A';
+                const rating = item.vote_average ? item.vote_average.toFixed(1) : '0.0';
+                
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => {
+                      fetchMovieDetails(item.id);
+                      setCurrentPage('details');
+                      setSearchQuery('');
+                      setShowSuggestions(false);
+                      setFocusedIndex(-1);
+                      addToast(`Loading ratings for: ${item.title}`, "AUTOCOMPLETE", "purple");
+                    }}
+                    onMouseEnter={() => setFocusedIndex(idx)}
+                    className={`search-suggestion-item ${idx === focusedIndex ? 'focused' : ''}`}
+                  >
+                    <div className="suggestion-thumb">
+                      {item.poster_path ? (
+                        <img
+                          src={item.poster_path.startsWith('http') ? item.poster_path : `https://image.tmdb.org/t/p/w92${item.poster_path}`}
+                          alt={item.title}
+                        />
+                      ) : (
+                        <div className="suggestion-thumb-empty">🎬</div>
+                      )}
+                    </div>
+                    <div className="suggestion-meta">
+                      <span className="suggestion-title">{item.title}</span>
+                      <div className="suggestion-sub-row">
+                        <span className="suggestion-year">{year}</span>
+                        <span className="badge badge-tmdb" style={{ fontSize: '7.5px', padding: '0.5px 4px' }}>TMDb: {rating}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </form>
       </header>
 

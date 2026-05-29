@@ -1351,3 +1351,116 @@ body.light-mode .hero-btn-secondary:hover {
   color: hsl(var(--accent-secondary));
   font-family: monospace;
 }
+
+/* 11. Autocomplete Search Dropdown Redesign */
+.search-spinner-tiny {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  border: 2px solid hsl(var(--accent-primary));
+  border-top-color: transparent;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+}
+
+.search-suggestions-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  max-height: 380px;
+  overflow-y: auto;
+  z-index: 150;
+  background: rgba(var(--glass-bg), 0.9);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 1px solid hsla(var(--text-main) / 0.1);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4), 0 0 25px 0 hsla(var(--accent-primary) / 0.08);
+  border-radius: 16px;
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+  animation: slideSuggestions 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideSuggestions {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.search-suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid hsla(var(--text-main) / 0.04);
+  transition: var(--transition-smooth);
+}
+
+.search-suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.search-suggestion-item:hover,
+.search-suggestion-item.focused {
+  background: hsla(var(--accent-primary) / 0.08);
+  border-color: transparent;
+}
+
+.suggestion-thumb {
+  width: 32px;
+  height: 48px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: hsla(var(--text-main) / 0.04);
+  flex-shrink: 0;
+  border: 1px solid hsla(var(--text-main) / 0.08);
+}
+
+.suggestion-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.suggestion-thumb-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+
+.suggestion-meta {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+.suggestion-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: hsl(var(--text-main));
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.suggestion-sub-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.suggestion-year {
+  font-size: 11px;
+  color: hsl(var(--text-muted));
+  font-weight: 500;
+}
