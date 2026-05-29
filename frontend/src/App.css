@@ -1464,3 +1464,205 @@ body.light-mode .hero-btn-secondary:hover {
   color: hsl(var(--text-muted));
   font-weight: 500;
 }
+
+/* 12. Netflix/Apple TV Horizontal Row Sliders Redesign */
+.netflix-row-container {
+  margin-bottom: 38px;
+  position: relative;
+  width: 100%;
+}
+
+.netflix-row-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: hsl(var(--text-main));
+  margin-bottom: 12px;
+  padding-left: 4px;
+  font-family: var(--font-title);
+  border-left: 3px solid hsl(var(--accent-primary));
+  line-height: 1.2;
+}
+
+.netflix-row-slider-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.netflix-row-slider {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  width: 100%;
+  padding: 12px 4px;
+  scrollbar-width: none; /* Hide scrollbar in Firefox */
+}
+
+.netflix-row-slider::-webkit-scrollbar {
+  display: none; /* Hide scrollbar in Chrome/Safari */
+}
+
+.netflix-card {
+  width: 170px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  background: rgba(var(--glass-bg), 0.45);
+  border: 1px solid hsla(var(--text-main) / 0.05);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.netflix-card:hover {
+  transform: translateY(-4px) scale(1.05);
+  border-color: hsla(var(--accent-primary) / 0.35);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.35), 0 0 20px 0 hsla(var(--accent-primary) / 0.1);
+}
+
+.netflix-poster-frame {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  background-color: hsla(var(--text-main) / 0.04);
+}
+
+.netflix-poster-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.netflix-card:hover .netflix-poster-frame img {
+  transform: scale(1.04);
+}
+
+/* Hover detail stats overlay */
+.netflix-card-hover-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.76);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 12px;
+  opacity: 0;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  transition: var(--transition-smooth);
+}
+
+.netflix-card:hover .netflix-card-hover-overlay {
+  opacity: 1;
+}
+
+.hover-rating-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  align-items: center;
+}
+
+.badge-cinescore {
+  background: linear-gradient(135deg, hsl(var(--accent-primary)), hsl(var(--accent-secondary)));
+  color: white;
+  border: none;
+  font-size: 8px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.badge-rt {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  font-size: 8px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.view-details-hover-btn {
+  font-size: 9px;
+  font-weight: 700;
+  color: hsl(var(--accent-primary));
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+.netflix-card-meta {
+  padding: 10px 4px 6px;
+}
+
+.netflix-card-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: hsl(var(--text-main));
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.netflix-card-year {
+  font-size: 11px;
+  color: hsl(var(--text-muted));
+  margin-top: 4px;
+  display: block;
+}
+
+/* Frosted Navigation Chevrons */
+.slider-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(var(--glass-bg), 0.65);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid hsla(var(--text-main) / 0.08);
+  color: hsl(var(--text-main));
+  font-size: 22px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  opacity: 0;
+  transition: var(--transition-smooth);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+}
+
+.netflix-row-slider-wrapper:hover .slider-nav-btn {
+  opacity: 1;
+}
+
+.slider-nav-btn-left {
+  left: -16px;
+}
+
+.slider-nav-btn-right {
+  right: -16px;
+}
+
+.slider-nav-btn:hover {
+  background: linear-gradient(135deg, hsl(var(--accent-primary)), hsl(var(--accent-secondary)));
+  color: white;
+  border-color: transparent;
+  transform: translateY(-50%) scale(1.08);
+}

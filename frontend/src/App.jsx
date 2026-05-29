@@ -343,6 +343,27 @@ export default function App() {
       ? 'http://localhost:8000'
       : 'https://cinescore-api.onrender.com')
   );
+
+  const [heroIndex, setHeroIndex] = useState(0);
+
+  // Cycle featured hero banner movie every 6 seconds
+  useEffect(() => {
+    const popularCount = moviesList.slice(0, 4).length;
+    if (popularCount === 0) return;
+    const interval = setInterval(() => {
+      setHeroIndex(prev => (prev + 1) % popularCount);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [moviesList]);
+
+  // Netflix-style horizontal row scroll utility
+  const scrollRow = (rowId, direction) => {
+    const element = document.getElementById(rowId);
+    if (element) {
+      const scrollAmt = direction === 'left' ? -500 : 500;
+      element.scrollBy({ left: scrollAmt, behavior: 'smooth' });
+    }
+  };
   
   // Dynamic Settings / Redesign themes state
   const [themeMode, setThemeMode] = useState('dark'); // 'dark', 'light'
@@ -834,106 +855,190 @@ export default function App() {
           </div>
         )}
 
-        {/* PAGE 1: HOME PAGE (Netflix Featured Hero banner + Grid) */}
+        {/* PAGE 1: HOME PAGE (Cinematic Netflix/Apple TV OTT Redesign) */}
         {currentPage === 'home' && (
           <div className="fade-in">
-            {/* Cinematic OTT Featured Hero Section */}
-            {selectedMovie && (
-              <div className="hero-banner-container glass-panel">
-                {selectedMovie.poster_path ? (
-                  <img
-                    src={selectedMovie.poster_path.startsWith('http') ? selectedMovie.poster_path : `https://image.tmdb.org/t/p/original${selectedMovie.poster_path}`}
-                    alt={selectedMovie.title}
-                    className="hero-backdrop-img"
-                  />
-                ) : (
-                  <div className="hero-backdrop-img" style={{ background: '#1e293b' }}></div>
-                )}
-                <div className="hero-overlay-fade"></div>
-                <div className="hero-text-content">
-                  <span className="hero-featured-tag">FEATURED AI INTELLIGENCE</span>
-                  <h2 className="hero-title">{selectedMovie.title}</h2>
-                  <p className="hero-tagline">{selectedMovie.overview}</p>
-                  <div className="hero-btn-row">
-                    <button 
-                      onClick={() => {
-                        setCurrentPage('details');
-                        addToast(`Showing details for ${selectedMovie.title}`, "DASHBOARD", "purple");
-                      }} 
-                      className="hero-btn-primary"
-                    >
-                      AI Ratings
-                    </button>
-                    <button 
-                      onClick={triggerLiveScraper} 
-                      className="hero-btn-secondary"
-                    >
-                      Scrape Feedback
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Catalog Grid Section with Genre Filter chips */}
-            <div className="catalog-header-bar">
-              <h3 className="catalog-title">POPULAR ON CINESCORE</h3>
-              <div className="genre-chips-container">
-                {genresChipsList.map(chip => (
-                  <button
-                    key={chip.code}
-                    onClick={() => {
-                      setActiveGenre(chip.code);
-                      addToast(`Filtering catalog by genre`, "FILTER SYNC", "cyan");
-                    }}
-                    className={`genre-chip ${activeGenre === chip.code ? 'active' : ''}`}
-                  >
-                    {chip.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Movie Grid */}
-            <div className="movie-grid">
-              {filteredMoviesGrid.map((movie) => (
-                <div
-                  key={movie.id}
-                  onClick={() => {
-                    fetchMovieDetails(movie.id);
-                    setCurrentPage('details');
-                  }}
-                  className="movie-grid-card glass-panel"
-                >
-                  <div className="movie-card-poster">
-                    {movie.poster_path ? (
+            {/* Cinematic Auto-rotating Hero Banner */}
+            {moviesList.length > 0 && (
+              (() => {
+                const featuredMovies = moviesList.slice(0, 4);
+                const featured = featuredMovies[heroIndex % featuredMovies.length] || selectedMovie;
+                const compScore = featured.rating?.aggregate_hybrid_score || featured.vote_average || 7.0;
+                const year = featured.release_date ? featured.release_date.split('-')[0] : 'N/A';
+                
+                return (
+                  <div className="hero-banner-container glass-panel">
+                    {featured.poster_path ? (
                       <img
-                        src={movie.poster_path.startsWith('http') ? movie.poster_path : `https://image.tmdb.org/t/p/w300${movie.poster_path}`}
-                        alt={movie.title}
+                        src={featured.poster_path.startsWith('http') ? featured.poster_path : `https://image.tmdb.org/t/p/original${featured.poster_path}`}
+                        alt={featured.title}
+                        className="hero-backdrop-img animate-fade"
+                        key={featured.id} // Enforces key refresh to trigger transition animations
                       />
                     ) : (
-                      <div className="no-poster-text">NO POSTER</div>
+                      <div className="hero-backdrop-img" style={{ background: '#0b0f19' }}></div>
                     )}
-                    <div className="movie-card-overlay">
-                      <span className="view-details-btn">View AI Ratings</span>
-                    </div>
-                  </div>
-                  <div className="movie-card-info">
-                    <h4 className="movie-card-title">{movie.title}</h4>
-                    <div className="movie-card-meta-row">
-                      <span className="movie-card-year">
-                        {movie.release_date ? movie.release_date.split('-')[0] : 'N/A'}
-                      </span>
-                      <div className="movie-card-badges">
-                        <span className="badge badge-tmdb">
-                          TMDb: {movie.vote_average ? movie.vote_average.toFixed(1) : '0.0'}
-                        </span>
+                    <div className="hero-overlay-fade"></div>
+                    <div className="hero-text-content">
+                      <span className="hero-featured-tag">AI CINEMATIC TRENDING</span>
+                      <h2 className="hero-title">{featured.title}</h2>
+                      
+                      {/* Hero ratings and release details */}
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap' }}>
+                        <span className="badge badge-tmdb" style={{ padding: '3px 8px', fontSize: '8.5px', background: 'linear-gradient(135deg, hsl(var(--accent-primary)), hsl(var(--accent-secondary)))', color: '#fff', border: 'none', fontWeight: 'bold' }}>CineScore: {compScore.toFixed(1)}</span>
+                        <span className="badge badge-imdb" style={{ padding: '3px 8px', fontSize: '8.5px', background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)', fontWeight: 'bold' }}>IMDb: {(featured.imdb_rating || featured.rating?.imdb_score || 7.5).toFixed(1)}</span>
+                        <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', fontFamily: 'monospace', fontWeight: 'bold', marginLeft: '6px' }}>RELEASE: {year}</span>
+                      </div>
+
+                      <p className="hero-tagline">{featured.overview}</p>
+                      
+                      <div className="hero-btn-row">
+                        <button 
+                          onClick={() => {
+                            fetchMovieDetails(featured.id);
+                            setCurrentPage('details');
+                            addToast(`Loading details for ${featured.title}`, "DASHBOARD", "purple");
+                          }} 
+                          className="hero-btn-primary"
+                        >
+                          Watch Insights
+                        </button>
+                        <button 
+                          onClick={() => {
+                            fetchMovieDetails(featured.id);
+                            triggerLiveScraper();
+                          }} 
+                          className="hero-btn-secondary"
+                        >
+                          Scrape Feedback
+                        </button>
+                      </div>
+
+                      {/* Apple TV-style slide progress dots */}
+                      <div style={{ display: 'flex', gap: '6px', marginTop: '24px' }}>
+                        {featuredMovies.map((_, idx) => (
+                          <div
+                            key={idx}
+                            onClick={() => setHeroIndex(idx)}
+                            style={{
+                              width: idx === (heroIndex % featuredMovies.length) ? '24px' : '6px',
+                              height: '6px',
+                              borderRadius: '100px',
+                              backgroundColor: idx === (heroIndex % featuredMovies.length) ? 'hsl(var(--accent-primary))' : 'rgba(255,255,255,0.2)',
+                              cursor: 'pointer',
+                              transition: 'all 0.4s ease'
+                            }}
+                          />
+                        ))}
                       </div>
                     </div>
                   </div>
+                );
+              })()
+            )}
+
+            {/* Slider Rows Top Picks & Genre Categorization */}
+            {(() => {
+              // 1. Sort by CineScore formula descending
+              const topCineScoreMovies = [...moviesList].sort((a, b) => 
+                (b.rating?.aggregate_hybrid_score || b.vote_average || 0) - 
+                (a.rating?.aggregate_hybrid_score || a.vote_average || 0)
+              );
+
+              // 2. Filter genres maps
+              const scifiMovies = moviesList.filter(m => 
+                m.genre_ids?.includes(878) || 
+                m.genres?.some(g => g.id === 878 || g === 878 || g.name === "Science Fiction")
+              );
+              
+              const actionMovies = moviesList.filter(m => 
+                m.genre_ids?.includes(28) || m.genre_ids?.includes(12) ||
+                m.genres?.some(g => g.id === 28 || g.id === 12 || g.name === "Action" || g.name === "Adventure")
+              );
+
+              const dramaMovies = moviesList.filter(m => 
+                m.genre_ids?.includes(18) || 
+                m.genres?.some(g => g.id === 18 || g.name === "Drama")
+              );
+
+              const crimeMovies = moviesList.filter(m => 
+                m.genre_ids?.includes(80) || m.genre_ids?.includes(53) ||
+                m.genres?.some(g => g.id === 80 || g.id === 53 || g.name === "Crime" || g.name === "Thriller")
+              );
+
+              const renderRow = (title, rowId, list) => {
+                if (list.length === 0) return null;
+                
+                return (
+                  <div className="netflix-row-container" key={rowId}>
+                    <h3 className="netflix-row-title">{title}</h3>
+                    <div className="netflix-row-slider-wrapper">
+                      {/* Nav Chevrons */}
+                      <button onClick={() => scrollRow(rowId, 'left')} className="slider-nav-btn slider-nav-btn-left">‹</button>
+                      
+                      <div id={rowId} className="netflix-row-slider">
+                        {list.map(movie => {
+                          const comp = movie.rating?.aggregate_hybrid_score || movie.vote_average || 7.0;
+                          const imdb = movie.imdb_rating || movie.rating?.imdb_score || 7.5;
+                          const rt = Math.round(comp * 10 - 4);
+                          
+                          return (
+                            <div
+                              key={movie.id}
+                              onClick={() => {
+                                fetchMovieDetails(movie.id);
+                                setCurrentPage('details');
+                                addToast(`Loaded cinematic insights for: ${movie.title}`, "NAVIGATION", "purple");
+                              }}
+                              className="netflix-card glass-panel"
+                            >
+                              <div className="netflix-poster-frame">
+                                {movie.poster_path ? (
+                                  <img
+                                    src={movie.poster_path.startsWith('http') ? movie.poster_path : `https://image.tmdb.org/t/p/w300${movie.poster_path}`}
+                                    alt={movie.title}
+                                    loading="lazy"
+                                  />
+                                ) : (
+                                  <div className="no-poster-text">NO POSTER</div>
+                                )}
+                                
+                                {/* Hover Rating overlays */}
+                                <div className="netflix-card-hover-overlay">
+                                  <div className="hover-rating-col">
+                                    <span className="badge badge-cinescore">CineScore: {comp.toFixed(1)}</span>
+                                    <span className="badge badge-imdb">IMDb: {imdb.toFixed(1)}</span>
+                                    <span className="badge badge-rt">RT: {rt}%</span>
+                                  </div>
+                                  <span className="view-details-hover-btn">View AI Dashboard &rarr;</span>
+                                </div>
+                              </div>
+                              <div className="netflix-card-meta">
+                                <h4 className="netflix-card-title">{movie.title}</h4>
+                                <span className="netflix-card-year">{movie.release_date ? movie.release_date.split('-')[0] : 'N/A'}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      
+                      <button onClick={() => scrollRow(rowId, 'right')} className="slider-nav-btn slider-nav-btn-right">›</button>
+                    </div>
+                  </div>
+                );
+              };
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {renderRow("Trending Now", "trending-row-slider", moviesList)}
+                  {renderRow("Top CineScore Picks", "top-picks-slider", topCineScoreMovies)}
+                  {renderRow("Sci-Fi & Cosmos Journeys", "scifi-row-slider", scifiMovies)}
+                  {renderRow("Action & Adventure Blockbusters", "action-row-slider", actionMovies)}
+                  {renderRow("Suspense Thrillers & Crime Epics", "crime-row-slider", crimeMovies)}
+                  {renderRow("Critically Acclaimed Dramas", "drama-row-slider", dramaMovies)}
                 </div>
-              ))}
-            </div>
+              );
+            })()}
           </div>
         )}
 
