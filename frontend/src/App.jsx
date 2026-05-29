@@ -365,9 +365,20 @@ export default function App() {
     }
   };
   
-  // Dynamic Settings / Redesign themes state
-  const [themeMode, setThemeMode] = useState('dark'); // 'dark', 'light'
-  const [accentColor, setAccentColor] = useState('purple'); // 'purple', 'cyan', 'amber', 'emerald'
+  // Unified Dynamic Themes System (7 premium visual setups)
+  const THEME_OPTIONS = [
+    { id: 'dark', name: 'Cinematic Dark', primaryColor: '#7C3AED', secondaryColor: '#22D3EE', bgClass: 'preview-dark' },
+    { id: 'neon', name: 'Neon Night', primaryColor: '#EC4899', secondaryColor: '#22D3EE', bgClass: 'preview-neon' },
+    { id: 'aurora', name: 'Aurora Purple', primaryColor: '#7C3AED', secondaryColor: '#4F46E5', bgClass: 'preview-aurora' },
+    { id: 'ocean', name: 'Ocean Blue', primaryColor: '#3B82F6', secondaryColor: '#22D3EE', bgClass: 'preview-ocean' },
+    { id: 'crimson', name: 'Crimson Red', primaryColor: '#E11D48', secondaryColor: '#F97316', bgClass: 'preview-crimson' },
+    { id: 'gold', name: 'Gold Luxe', primaryColor: '#FBBF24', secondaryColor: '#D97706', bgClass: 'preview-gold' },
+    { id: 'light', name: 'Frosted Glass Light', primaryColor: '#7C3AED', secondaryColor: '#3B82F6', bgClass: 'preview-light' }
+  ];
+
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('cinescore-theme') || 'dark';
+  });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [activeGenre, setActiveGenre] = useState('ALL');
   
@@ -382,21 +393,13 @@ export default function App() {
     }, 4000);
   };
   
-  // Sync Dark/Light Mode styles
+  // Sync HSL premium themes to body class and save selection persistently
   useEffect(() => {
-    if (themeMode === 'light') {
-      document.body.classList.add('light-mode');
-    } else {
-      document.body.classList.remove('light-mode');
-    }
-  }, [themeMode]);
-
-  // Sync Accent themes
-  useEffect(() => {
-    const accents = ['accent-purple', 'accent-cyan', 'accent-amber', 'accent-emerald'];
-    accents.forEach(cls => document.body.classList.remove(cls));
-    document.body.classList.add(`accent-${accentColor}`);
-  }, [accentColor]);
+    const themeClasses = ['theme-dark', 'theme-neon', 'theme-aurora', 'theme-ocean', 'theme-crimson', 'theme-gold', 'theme-light'];
+    themeClasses.forEach(cls => document.body.classList.remove(cls));
+    document.body.classList.add(`theme-${theme}`);
+    localStorage.setItem('cinescore-theme', theme);
+  }, [theme]);
 
   // Custom Routing / Navigation Tabs
   const [currentPage, setCurrentPage] = useState('home'); // 'home', 'details', 'analytics', 'reviews'
@@ -1311,7 +1314,7 @@ export default function App() {
                           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                           <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
                           <YAxis domain={[0, 10]} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
-                          <Tooltip contentStyle={{ backgroundColor: 'rgba(13,17,28,0.95)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff' }} />
+                          <Tooltip contentStyle={{ backgroundColor: 'rgba(var(--glass-bg), 0.95)', border: '1px solid hsla(var(--text-main) / 0.1)', borderRadius: '12px', color: 'hsl(var(--text-main))' }} />
                           <Bar dataKey="Score" radius={[4, 4, 0, 0]}>
                             {ratingComparisonData.map((entry, index) => {
                               const colors = ['#fbbf24', 'hsl(var(--accent-secondary))', '#f87171', '#4ade80', 'hsl(var(--accent-primary))'];
@@ -1344,7 +1347,7 @@ export default function App() {
                                 <Cell key={`cell-${index}`} fill={entry.color} />
                               ))}
                             </Pie>
-                            <Tooltip contentStyle={{ backgroundColor: 'rgba(13,17,28,0.95)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff' }} />
+                            <Tooltip contentStyle={{ backgroundColor: 'rgba(var(--glass-bg), 0.95)', border: '1px solid hsla(var(--text-main) / 0.1)', borderRadius: '12px', color: 'hsl(var(--text-main))' }} />
                             <Legend verticalAlign="bottom" height={36} tick={{ fill: 'hsl(var(--text-main))', fontSize: 10 }} />
                           </PieChart>
                         </ResponsiveContainer>
@@ -1364,7 +1367,7 @@ export default function App() {
                           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                           <XAxis type="number" domain={[0, 10]} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
                           <YAxis dataKey="name" type="category" tick={{ fill: 'hsl(var(--text-main))', fontSize: 10 }} axisLine={false} tickLine={false} width={80} />
-                          <Tooltip contentStyle={{ backgroundColor: 'rgba(13,17,28,0.95)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff' }} />
+                          <Tooltip contentStyle={{ backgroundColor: 'rgba(var(--glass-bg), 0.95)', border: '1px solid hsla(var(--text-main) / 0.1)', borderRadius: '12px', color: 'hsl(var(--text-main))' }} />
                           <Bar dataKey="Score" radius={[0, 4, 4, 0]} barSize={12}>
                             {aspectData.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={entry.color} />
@@ -1487,7 +1490,7 @@ export default function App() {
                           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                           <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
                           <YAxis domain={[0, 10]} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
-                          <Tooltip contentStyle={{ backgroundColor: 'rgba(13,17,28,0.95)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#fff' }} />
+                          <Tooltip contentStyle={{ backgroundColor: 'rgba(var(--glass-bg), 0.95)', border: '1px solid hsla(var(--text-main) / 0.1)', borderRadius: '12px', color: 'hsl(var(--text-main))' }} />
                           <Area type="monotone" dataKey="Vibe Score" stroke="hsl(var(--accent-primary))" strokeWidth={2} fillOpacity={1} fill="url(#trendGradient)" />
                         </AreaChart>
                       </ResponsiveContainer>
@@ -1632,37 +1635,25 @@ export default function App() {
       <div className="accent-switcher-panel">
         {settingsOpen && (
           <div className="accent-panel-drawer glass-panel">
-            {/* Accent theme picking dots */}
-            <div>
-              <span className="drawer-section-title">Accent Theme</span>
-              <div className="accent-dots-row">
-                <button onClick={() => { setAccentColor('purple'); addToast("Swapped to Violet Purple Theme", "SETTINGS UPDATE", "purple"); }} className={`accent-dot accent-dot-purple ${accentColor === 'purple' ? 'active' : ''}`} title="Violet Purple" />
-                <button onClick={() => { setAccentColor('cyan'); addToast("Swapped to Neon Cyan Theme", "SETTINGS UPDATE", "cyan"); }} className={`accent-dot accent-dot-cyan ${accentColor === 'cyan' ? 'active' : ''}`} title="Neon Cyan" />
-                <button onClick={() => { setAccentColor('amber'); addToast("Swapped to Gold Amber Theme", "SETTINGS UPDATE", "amber"); }} className={`accent-dot accent-dot-amber ${accentColor === 'amber' ? 'active' : ''}`} title="Gold Amber" />
-                <button onClick={() => { setAccentColor('emerald'); addToast("Swapped to Emerald Green Theme", "SETTINGS UPDATE", "emerald"); }} className={`accent-dot accent-dot-emerald ${accentColor === 'emerald' ? 'active' : ''}`} title="Emerald Green" />
-              </div>
-            </div>
-
-            {/* Dark/Light mode toggler */}
-            <div style={{ borderTop: '1px solid hsla(var(--text-main)/0.06)', paddingTop: '8px' }}>
-              <span className="drawer-section-title">Visual Mode</span>
-              <div className="theme-toggle-row">
-                <span style={{ fontSize: '11px', fontWeight: '600', color: 'hsl(var(--text-main))' }}>
-                  {themeMode === 'dark' ? 'Dark Theme' : 'Light Theme'}
-                </span>
-                <label className="toggle-switch-container">
-                  <input
-                    type="checkbox"
-                    checked={themeMode === 'light'}
-                    onChange={(e) => {
-                      const nextMode = e.target.checked ? 'light' : 'dark';
-                      setThemeMode(nextMode);
-                      addToast(`Swapped to ${nextMode.toUpperCase()} mode`, "THEME CHANGE", "purple");
-                    }}
-                    className="toggle-switch-input"
-                  />
-                </label>
-              </div>
+            <span className="drawer-section-title">Cinematic Themes</span>
+            <div className="theme-switcher-grid">
+              {THEME_OPTIONS.map((opt) => (
+                <button
+                  key={opt.id}
+                  onClick={() => {
+                    setTheme(opt.id);
+                    addToast(`Swapped to ${opt.name} Theme`, "THEME CHANGE", opt.id);
+                  }}
+                  className={`theme-picker-card ${theme === opt.id ? 'active' : ''}`}
+                  title={opt.name}
+                >
+                  <div className={`theme-picker-preview ${opt.bgClass}`}>
+                    <span className="theme-preview-dot" style={{ backgroundColor: opt.primaryColor }} />
+                    <span className="theme-preview-dot" style={{ backgroundColor: opt.secondaryColor }} />
+                  </div>
+                  <span className="theme-picker-name">{opt.name}</span>
+                </button>
+              ))}
             </div>
           </div>
         )}

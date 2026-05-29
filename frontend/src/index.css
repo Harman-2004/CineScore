@@ -28,8 +28,100 @@
   --transition-smooth: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Light Theme Variables Override */
-body.light-mode {
+/* Light/Dark/Accent Themes Override (7 Premium Theme Profiles) */
+
+/* Theme 1: Cinematic Dark (Midnight Navy / Deep Space Base, Purple/Cyan Accents) */
+body.theme-dark {
+  --bg-dark: 224 25% 6%;
+  --bg-darker: 222 47% 4%;
+  --card-dark: 222 47% 9%;
+  --card-hover: 222 47% 13%;
+  --border-color: 222 47% 17%;
+  --text-main: 0 0% 98%;
+  --text-muted: 222 15% 68%;
+  --glass-bg: 15 23 42;
+  --accent-primary: 262 85% 60%;
+  --accent-secondary: 180 85% 50%;
+  --accent-glow: var(--accent-primary) / 15%;
+}
+
+/* Theme 2: Neon Night (Jet Black Base, Neon Magenta/Neon Cyan Accents) */
+body.theme-neon {
+  --bg-dark: 0 0% 3%;
+  --bg-darker: 0 0% 0%;
+  --card-dark: 0 0% 7%;
+  --card-hover: 0 0% 12%;
+  --border-color: 0 0% 16%;
+  --text-main: 0 0% 100%;
+  --text-muted: 0 0% 72%;
+  --glass-bg: 5 5 5;
+  --accent-primary: 327 85% 60%;
+  --accent-secondary: 180 85% 50%;
+  --accent-glow: var(--accent-primary) / 20%;
+}
+
+/* Theme 3: Aurora Purple (Deep Royal Indigo Base, Violet/Royal Indigo Accents) */
+body.theme-aurora {
+  --bg-dark: 250 40% 7%;
+  --bg-darker: 250 45% 4%;
+  --card-dark: 250 35% 12%;
+  --card-hover: 250 35% 16%;
+  --border-color: 250 30% 21%;
+  --text-main: 0 0% 98%;
+  --text-muted: 250 20% 75%;
+  --glass-bg: 17 12 34;
+  --accent-primary: 262 85% 60%;
+  --accent-secondary: 239 84% 67%;
+  --accent-glow: var(--accent-primary) / 18%;
+}
+
+/* Theme 4: Ocean Blue (Deep Blue/Teal Ocean Base, Electric Blue/Cyan Accents) */
+body.theme-ocean {
+  --bg-dark: 215 50% 6%;
+  --bg-darker: 215 50% 3%;
+  --card-dark: 215 45% 10%;
+  --card-hover: 215 45% 14%;
+  --border-color: 215 35% 18%;
+  --text-main: 0 0% 98%;
+  --text-muted: 215 20% 75%;
+  --glass-bg: 13 24 41;
+  --accent-primary: 217 91% 60%;
+  --accent-secondary: 180 85% 50%;
+  --accent-glow: var(--accent-primary) / 15%;
+}
+
+/* Theme 5: Crimson Red (Deep Mahogany Base, Crimson/Orange Accents) */
+body.theme-crimson {
+  --bg-dark: 345 40% 6%;
+  --bg-darker: 345 45% 3%;
+  --card-dark: 345 35% 11%;
+  --card-hover: 345 35% 15%;
+  --border-color: 345 25% 18%;
+  --text-main: 0 0% 98%;
+  --text-muted: 345 15% 75%;
+  --glass-bg: 28 11 16;
+  --accent-primary: 345 85% 55%;
+  --accent-secondary: 20 90% 60%;
+  --accent-glow: var(--accent-primary) / 15%;
+}
+
+/* Theme 6: Gold Luxe (Luxurious Charcoal Gold Base, Warm Gold/Bronze Accents) */
+body.theme-gold {
+  --bg-dark: 40 10% 6%;
+  --bg-darker: 40 10% 3%;
+  --card-dark: 40 10% 11%;
+  --card-hover: 40 10% 15%;
+  --border-color: 40 10% 19%;
+  --text-main: 40 10% 98%;
+  --text-muted: 40 5% 72%;
+  --glass-bg: 24 22 20;
+  --accent-primary: 43 96% 58%;
+  --accent-secondary: 28 80% 52%;
+  --accent-glow: var(--accent-primary) / 15%;
+}
+
+/* Theme 7: Frosted Glass Light Mode (Apple-style pristine light mode, Royal purple & electric blue accents) */
+body.theme-light {
   --bg-dark: 220 20% 96%;
   --bg-darker: 220 20% 91%;
   --card-dark: 0 0% 100%;
@@ -38,27 +130,9 @@ body.light-mode {
   --text-main: 224 25% 12%;
   --text-muted: 224 10% 45%;
   --glass-bg: 255 255 255;
-}
-
-/* Custom Theme Accents Override */
-body.accent-purple {
   --accent-primary: 262 85% 60%;
-  --accent-secondary: 180 85% 50%;
-}
-
-body.accent-cyan {
-  --accent-primary: 180 85% 50%;
-  --accent-secondary: 195 85% 50%;
-}
-
-body.accent-amber {
-  --accent-primary: 38 92% 52%;
-  --accent-secondary: 15 90% 55%;
-}
-
-body.accent-emerald {
-  --accent-primary: 142 76% 45%;
-  --accent-secondary: 180 85% 50%;
+  --accent-secondary: 217 91% 60%;
+  --accent-glow: var(--accent-primary) / 8%;
 }
 
 * {
@@ -78,6 +152,9 @@ body {
     radial-gradient(at 0% 0%, hsla(var(--accent-primary) / 0.08) 0px, transparent 50%),
     radial-gradient(at 100% 100%, hsla(var(--accent-secondary) / 0.05) 0px, transparent 50%);
   background-attachment: fixed;
+  transition: background-color 0.6s cubic-bezier(0.16, 1, 0.3, 1), 
+              color 0.6s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Scrollbar styling */
