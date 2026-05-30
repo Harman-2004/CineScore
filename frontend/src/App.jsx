@@ -1192,10 +1192,14 @@ export default function App() {
                       <div className="bar-item">
                         <div className="bar-label-row">
                           <span style={{ color: 'hsl(var(--text-main))', fontWeight: '600' }}>IMDb Score (40% Weight)</span>
-                          <span style={{ fontWeight: '700', color: '#fbbf24' }}>{hybridRating.imdb_score ? hybridRating.imdb_score.toFixed(1) : (selectedMovie.imdb_rating ? selectedMovie.imdb_rating.toFixed(1) : 'N/A')}/10</span>
+                          <span style={{ fontWeight: '700', color: '#fbbf24' }}>
+                            {hybridRating.imdb_score || selectedMovie.imdb_rating
+                              ? `${(hybridRating.imdb_score || selectedMovie.imdb_rating).toFixed(1)}/10`
+                              : "Rating unavailable"}
+                          </span>
                         </div>
                         <div className="bar-track">
-                          <div className="bar-fill" style={{ width: `${(hybridRating.imdb_score || selectedMovie.imdb_rating || 8.0) * 10}%`, backgroundColor: '#fbbf24' }}></div>
+                          <div className="bar-fill" style={{ width: `${(hybridRating.imdb_score || selectedMovie.imdb_rating || 0) * 10}%`, backgroundColor: '#fbbf24' }}></div>
                         </div>
                       </div>
 
@@ -1203,10 +1207,14 @@ export default function App() {
                       <div className="bar-item">
                         <div className="bar-label-row">
                           <span style={{ color: 'hsl(var(--text-main))', fontWeight: '600' }}>TMDb Score (20% Weight)</span>
-                          <span style={{ fontWeight: '700', color: 'hsl(var(--accent-secondary))' }}>{hybridRating.tmdb_score ? hybridRating.tmdb_score.toFixed(1) : (selectedMovie.vote_average ? selectedMovie.vote_average.toFixed(1) : 'N/A')}/10</span>
+                          <span style={{ fontWeight: '700', color: 'hsl(var(--accent-secondary))' }}>
+                            {hybridRating.tmdb_score || selectedMovie.vote_average
+                              ? `${(hybridRating.tmdb_score || selectedMovie.vote_average).toFixed(1)}/10`
+                              : "Rating unavailable"}
+                          </span>
                         </div>
                         <div className="bar-track">
-                          <div className="bar-fill" style={{ width: `${(hybridRating.tmdb_score || selectedMovie.vote_average || 7.0) * 10}%`, backgroundColor: 'hsl(var(--accent-secondary))' }}></div>
+                          <div className="bar-fill" style={{ width: `${(hybridRating.tmdb_score || selectedMovie.vote_average || 0) * 10}%`, backgroundColor: 'hsl(var(--accent-secondary))' }}></div>
                         </div>
                       </div>
 
@@ -1214,10 +1222,14 @@ export default function App() {
                       <div className="bar-item">
                         <div className="bar-label-row">
                           <span style={{ color: 'hsl(var(--text-main))', fontWeight: '600' }}>Metacritic Score (10% Weight)</span>
-                          <span style={{ fontWeight: '700', color: '#f87171' }}>{hybridRating.metacritic_score ? (hybridRating.metacritic_score * 10).toFixed(0) : (selectedMovie.metacritic_score ? (selectedMovie.metacritic_score * 10).toFixed(0) : 'N/A')}/100</span>
+                          <span style={{ fontWeight: '700', color: '#f87171' }}>
+                            {hybridRating.metacritic_score || selectedMovie.metacritic_score
+                              ? `${((hybridRating.metacritic_score || selectedMovie.metacritic_score) * 10).toFixed(0)}/100`
+                              : "Rating unavailable"}
+                          </span>
                         </div>
                         <div className="bar-track">
-                          <div className="bar-fill" style={{ width: `${(hybridRating.metacritic_score || selectedMovie.metacritic_score || 7.0) * 10}%`, backgroundColor: '#f87171' }}></div>
+                          <div className="bar-fill" style={{ width: `${(hybridRating.metacritic_score || selectedMovie.metacritic_score || 0) * 10}%`, backgroundColor: '#f87171' }}></div>
                         </div>
                       </div>
 
