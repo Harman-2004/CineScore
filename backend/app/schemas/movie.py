@@ -8,14 +8,20 @@ class MovieGenre(BaseModel):
 
 class MovieResponse(BaseModel):
     id: int
+    imdb_id: Optional[str] = None
     title: str
     overview: Optional[str] = None
     poster_path: Optional[str] = None
     release_date: Optional[str] = None
     genres: Optional[List[Union[MovieGenre, Dict[str, Any]]]] = None
     vote_average: Optional[float] = 0.0
+    runtime: Optional[int] = None
     imdb_rating: Optional[float] = None
     metacritic_score: Optional[float] = None  # Metacritic rating score (out of 10)
+    omdb_status: Optional[str] = None
+    omdb_error: Optional[str] = None
+    media_type: Optional[str] = None
+    rating_source: Optional[str] = None
 
 class MovieListResponse(BaseModel):
     page: int
@@ -25,14 +31,20 @@ class MovieListResponse(BaseModel):
 
 class MovieCacheResponse(BaseModel):
     id: int
+    imdb_id: Optional[str] = None
     title: str
     overview: Optional[str] = None
     poster_path: Optional[str] = None
     release_date: Optional[str] = None
     genres: Optional[List[Dict[str, Any]]] = None
     vote_average: float
+    runtime: Optional[int] = None
     imdb_rating: Optional[float] = None
     metacritic_score: Optional[float] = None  # Cached Metacritic rating
+    omdb_status: Optional[str] = None
+    omdb_error: Optional[str] = None
+    media_type: Optional[str] = None
+    rating_source: Optional[str] = None
     cached_at: datetime
 
     class Config:

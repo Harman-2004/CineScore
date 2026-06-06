@@ -1,7 +1,6 @@
-import requests
+import httpx
 from bs4 import BeautifulSoup
 from typing import List, Dict, Any, Optional
-
 class RedditScraper:
     """
     Scrapes movie discussions and review comments from r/movies or search feeds using BeautifulSoup.
@@ -12,7 +11,7 @@ class RedditScraper:
             "Accept-Language": "en-US,en;q=0.9"
         }
 
-    def scrape_reviews(self, movie_title: str) -> List[Dict[str, Any]]:
+    async def scrape_reviews(self, movie_title: str) -> List[Dict[str, Any]]:
         """
         Queries Reddit search or r/movies for threads matching the movie title.
         """
@@ -22,14 +21,14 @@ class RedditScraper:
         
         try:
             # We try using old.reddit.com since it lacks heavy javascript rendering, making it BeautifulSoup-friendly
-            response = requests.get(url, headers=self.headers, timeout=6)
-            if response.status_code == 200:
-                return self._parse_reddit_search(response.text, movie_title)
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, headers=self.headers, timeout=6.0)
+                if response.status_code == 200:
+                    return self._parse_reddit_search(response.text, movie_title)
         except Exception as e:
             print(f"Reddit Live Search failed for {movie_title}: {e}")
             
         return self._get_fallback_comments(movie_title)
-
     def _parse_reddit_search(self, html: str, movie_title: str) -> List[Dict[str, Any]]:
         """
         Parses search results to return comments or titles as discussions.

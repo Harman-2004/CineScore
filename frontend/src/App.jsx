@@ -1,10 +1,126 @@
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  AreaChart, Area
-} from 'recharts';
+import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
+import { QueryClient, QueryClientProvider, useQueryClient, useQuery } from '@tanstack/react-query';
 import './App.css';
+
+const AnalyticsCharts = lazy(() => import('./components/AnalyticsCharts.jsx'));
+
+function PremiumPosterPlaceholder({ title, className, small }) {
+  return (
+    <div className={`premium-poster-placeholder ${className || ''}`} style={{
+      background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+      border: '1px solid rgba(255, 255, 255, 0.08)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: small ? '4px' : '16px',
+      textAlign: 'center',
+      height: '100%',
+      width: '100%',
+      color: '#94a3b8',
+      position: 'relative',
+      overflow: 'hidden',
+      borderRadius: 'inherit'
+    }}>
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'radial-gradient(circle at top right, rgba(99, 102, 241, 0.15), transparent 70%)',
+        pointerEvents: 'none'
+      }}></div>
+      <span style={{ fontSize: small ? '1.2rem' : '2rem', marginBottom: small ? '0px' : '8px' }}>🎬</span>
+      {!small && (
+        <span style={{ 
+          fontSize: '11px', 
+          fontWeight: '700', 
+          color: '#f8fafc',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          display: '-webkit-box',
+          WebkitLineClamp: '3',
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+          lineHeight: '1.4'
+        }}>{title || 'CineScore'}</span>
+      )}
+    </div>
+  );
+}
+
+function ImageWithLoader({ src, alt, title, className, style, small }) {
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    setLoaded(false);
+    setError(false);
+  }, [src]);
+
+  if (!src || error) {
+    return <PremiumPosterPlaceholder title={title || alt} className={className} small={small} />;
+  }
+
+  return (
+    <div className={`image-loader-container ${className || ''}`} style={{
+      position: 'relative',
+      width: '100%',
+      height: '100%',
+      overflow: 'hidden',
+      borderRadius: 'inherit',
+      display: 'block',
+      ...style
+    }}>
+      {!loaded && (
+        <div className="skeleton-image" style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          borderRadius: 'inherit',
+          zIndex: 1,
+          aspectRatio: 'unset'
+        }}></div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        onLoad={() => setLoaded(true)}
+        onError={() => setError(true)}
+        style={{
+          display: loaded ? 'block' : 'none',
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          borderRadius: 'inherit'
+        }}
+      />
+    </div>
+  );
+}
+
+function AnalyticsSkeleton() {
+  return (
+    <div className="analytics-section">
+      <div style={{ marginBottom: '24px' }}>
+        <div className="skeleton-text" style={{ width: '250px', height: '24px' }}></div>
+        <div className="skeleton-text" style={{ width: '450px', height: '14px', marginTop: '8px' }}></div>
+      </div>
+      <div className="analytics-charts-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginTop: '20px' }}>
+        {[1, 2, 3, 4, 5, 6].map(idx => (
+          <div key={idx} className="chart-card glass-panel" style={{ height: '320px', display: 'flex', flexDirection: 'column', gap: '12px', padding: '20px' }}>
+            <div className="skeleton-text" style={{ width: '150px', height: '16px' }}></div>
+            <div className="skeleton-text short" style={{ width: '80px', height: '10px' }}></div>
+            <div className="skeleton-image" style={{ flexGrow: 1, maxHeight: '200px' }}></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // Fallback high-fidelity mock dataset used when backend is offline/unreachable
 const FALLBACK_MOVIES = [
@@ -18,7 +134,7 @@ const FALLBACK_MOVIES = [
     imdb_rating: 8.7,
     metacritic_score: 7.4,
     rating: {
-      imdb_score: 8.7,
+      imdb_rating: 8.7,
       tmdb_score: 8.4,
       metacritic_score: 7.4,
       sentiment_avg_polarity: 0.44,
@@ -42,7 +158,7 @@ const FALLBACK_MOVIES = [
     imdb_rating: 8.8,
     metacritic_score: 7.4,
     rating: {
-      imdb_score: 8.8,
+      imdb_rating: 8.8,
       tmdb_score: 8.3,
       metacritic_score: 7.4,
       sentiment_avg_polarity: 0.52,
@@ -67,7 +183,7 @@ const FALLBACK_MOVIES = [
     imdb_rating: 9.0,
     metacritic_score: 8.4,
     rating: {
-      imdb_score: 9.0,
+      imdb_rating: 9.0,
       tmdb_score: 8.5,
       metacritic_score: 8.4,
       sentiment_avg_polarity: 0.64,
@@ -91,7 +207,7 @@ const FALLBACK_MOVIES = [
     imdb_rating: 7.9,
     metacritic_score: 8.1,
     rating: {
-      imdb_score: 7.9,
+      imdb_rating: 7.9,
       tmdb_score: 7.7,
       metacritic_score: 8.1,
       sentiment_avg_polarity: 0.46,
@@ -233,14 +349,17 @@ const computeMockModeration = (reviewsList) => {
   });
 };
 
-export default function App() {
+function AppContent() {
+  const queryClient = useQueryClient();
   const [moviesList, setMoviesList] = useState(FALLBACK_MOVIES);
+  const [selectedMovieId, setSelectedMovieId] = useState(FALLBACK_MOVIES[0].id);
+  const [activeSearchQuery, setActiveSearchQuery] = useState('');
+  
   const [selectedMovie, setSelectedMovie] = useState({
     ...FALLBACK_MOVIES[0],
     reviews: computeMockModeration(FALLBACK_MOVIES[0].reviews),
     average_aspect_scores: computeMockAspectScores(FALLBACK_MOVIES[0].reviews),
-    integrity_metrics: {
-      integrity_score: 95.0,
+    integrity_metrics: {      integrity_score: 95.0,
       spam_count: 0,
       bot_flag_count: 0,
       duplicate_count: 0
@@ -252,9 +371,104 @@ export default function App() {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [skeletonLoading, setSkeletonLoading] = useState(false);
   const [scrapeStatus, setScrapeStatus] = useState('');
   const [backendAlive, setBackendAlive] = useState(false);
+
+  // TanStack Query for popular or search movies
+  const { data: moviesListData } = useQuery({
+    queryKey: ['movies', activeSearchQuery, backendAlive],
+    queryFn: async () => {
+      if (!backendAlive) {
+        if (!activeSearchQuery) return { results: FALLBACK_MOVIES };
+        const filtered = FALLBACK_MOVIES.filter(m =>
+          m.title.toLowerCase().includes(activeSearchQuery.toLowerCase())
+        );
+        return { results: filtered };
+      }
+      const url = activeSearchQuery 
+        ? `${backendUrl}/movies?query=${encodeURIComponent(activeSearchQuery)}`
+        : `${backendUrl}/movies`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Failed to fetch movies list");
+      return res.json();
+    },
+  });
+
+  useEffect(() => {
+    if (moviesListData?.results) {
+      if (moviesListData.results.length > 0) {
+        setMoviesList(moviesListData.results);
+        setSelectedMovieId(moviesListData.results[0].id);
+      } else {
+        addToast(`No matches found for "${activeSearchQuery}"`, "NO RESULTS", "amber");
+      }
+    }
+  }, [moviesListData]);
+
+  // TanStack Query for movie details (combines all 5 detail REST API resources)
+  const { data: movieDetailsData, isFetching: isDetailsFetching, isError: isDetailsError, error: detailsError, refetch: refetchDetails } = useQuery({
+    queryKey: ['movieDetails', selectedMovieId, backendAlive],
+    queryFn: async () => {
+      if (!backendAlive) {
+        const localMock = FALLBACK_MOVIES.find(m => m.id === selectedMovieId);
+        if (!localMock) throw new Error("Local mock not found");
+        return {
+          movieData: localMock,
+          reviewsData: { reviews: localMock.reviews || [] },
+          ratingData: localMock.rating,
+          sentimentData: null,
+          recommendationsData: null
+        };
+      }
+      
+      const [movieData, reviewsData, ratingData, sentimentData, recommendationsData] = await Promise.all([
+        fetch(`${backendUrl}/movie/${selectedMovieId}`).then(r => r.json()),
+        fetch(`${backendUrl}/reviews/${selectedMovieId}`).then(r => r.json()),
+        fetch(`${backendUrl}/rating/${selectedMovieId}`).then(r => r.json()),
+        fetch(`${backendUrl}/sentiment/${selectedMovieId}`).then(r => r.json()).catch(() => null),
+        fetch(`${backendUrl}/movie/${selectedMovieId}/recommendations`).then(r => r.json()).catch(() => null)
+      ]);
+      
+      return {
+        movieData,
+        reviewsData,
+        ratingData,
+        sentimentData,
+        recommendationsData
+      };
+    },
+    enabled: !!selectedMovieId,
+  });
+
+  useEffect(() => {
+    if (movieDetailsData) {
+      const { movieData, reviewsData, ratingData, sentimentData, recommendationsData } = movieDetailsData;
+      const rawReviews = reviewsData.reviews || [];
+      const enrichedMovie = {
+        ...movieData,
+        reviews: computeMockModeration(rawReviews),
+        rating: ratingData || {
+          imdb_rating: movieData.imdb_rating,
+          tmdb_score: movieData.vote_average,
+          metacritic_score: movieData.metacritic_score,
+          aggregate_hybrid_score: movieData.vote_average,
+          omdb_status: movieData.omdb_status,
+          omdb_error: movieData.omdb_error
+        },
+        average_aspect_scores: sentimentData?.average_aspect_scores || computeMockAspectScores(rawReviews),
+        integrity_metrics: sentimentData?.integrity_metrics || {
+          integrity_score: rawReviews.length > 0 ? 80.0 : 100.0,
+          spam_count: rawReviews.length > 0 ? 1 : 0,
+          bot_flag_count: 0,
+          duplicate_count: rawReviews.length > 0 ? 1 : 0
+        }
+      };
+      setSelectedMovie(enrichedMovie);
+      setRecommendations(recommendationsData || computeMockRecommendations(selectedMovieId));
+    }
+  }, [movieDetailsData, selectedMovieId]);
+
+  const skeletonLoading = isDetailsFetching;
 
   // Movie Autocomplete search states
   const [suggestions, setSuggestions] = useState([]);
@@ -268,6 +482,7 @@ export default function App() {
     if (!searchQuery.trim()) {
       setSuggestions([]);
       setShowSuggestions(false);
+      setActiveSearchQuery('');
       return;
     }
 
@@ -431,7 +646,6 @@ export default function App() {
         if (data.status === 'healthy') {
           setBackendAlive(true);
           addToast("Connected to live FastAPI database engine.", "SYSTEM ACTIVE", "emerald");
-          fetchPopularMovies();
         }
       })
       .catch(() => {
@@ -441,79 +655,8 @@ export default function App() {
       });
   }, []);
 
-  const fetchPopularMovies = () => {
-    fetch(`${backendUrl}/movies`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.results && data.results.length > 0) {
-          setMoviesList(data.results);
-          fetchMovieDetails(data.results[0].id, false);
-        }
-      })
-      .catch(err => console.error("Error loading movies:", err));
-  };
-
-  const fetchMovieDetails = (movieId, triggerAnimation = true) => {
-    if (triggerAnimation) {
-      setSkeletonLoading(true);
-    }
-    
-    Promise.all([
-      fetch(`${backendUrl}/movie/${movieId}`).then(r => r.json()),
-      fetch(`${backendUrl}/reviews/${movieId}`).then(r => r.json()),
-      fetch(`${backendUrl}/rating/${movieId}`).then(r => r.json()),
-      fetch(`${backendUrl}/sentiment/${movieId}`).then(r => r.json()).catch(() => null),
-      fetch(`${backendUrl}/movie/${movieId}/recommendations`).then(r => r.json()).catch(() => null)
-    ])
-      .then(([movieData, reviewsData, ratingData, sentimentData, recommendationsData]) => {
-        const rawReviews = reviewsData.reviews || [];
-        const enrichedMovie = {
-          ...movieData,
-          reviews: computeMockModeration(rawReviews),
-          rating: ratingData || {
-            imdb_score: movieData.imdb_rating,
-            tmdb_score: movieData.vote_average,
-            metacritic_score: movieData.metacritic_score,
-            aggregate_hybrid_score: movieData.vote_average
-          },
-          average_aspect_scores: sentimentData?.average_aspect_scores || computeMockAspectScores(rawReviews),
-          integrity_metrics: sentimentData?.integrity_metrics || {
-            integrity_score: rawReviews.length > 0 ? 80.0 : 100.0,
-            spam_count: rawReviews.length > 0 ? 1 : 0,
-            bot_flag_count: 0,
-            duplicate_count: rawReviews.length > 0 ? 1 : 0
-          }
-        };
-        setSelectedMovie(enrichedMovie);
-        setRecommendations(recommendationsData || computeMockRecommendations(movieId));
-        
-        setTimeout(() => {
-          setSkeletonLoading(false);
-          addToast(`Loaded catalog data for: ${movieData.title}`, "CATALOG SYNC", "purple");
-        }, 300);
-      })
-      .catch(err => {
-        console.error("Error loading details, falling back to mock details:", err);
-        const localMock = FALLBACK_MOVIES.find(m => m.id === movieId);
-        if (localMock) {
-          setSelectedMovie({
-            ...localMock,
-            reviews: computeMockModeration(localMock.reviews),
-            average_aspect_scores: computeMockAspectScores(localMock.reviews),
-            integrity_metrics: {
-              integrity_score: 95.0,
-              spam_count: 0,
-              bot_flag_count: 0,
-              duplicate_count: 0
-            }
-          });
-          setRecommendations(computeMockRecommendations(movieId));
-        }
-        setTimeout(() => {
-          setSkeletonLoading(false);
-          addToast(`Synced localized catalog for movie ID ${movieId}`, "CATALOG SYNC", "purple");
-        }, 300);
-      });
+  const fetchMovieDetails = (movieId) => {
+    setSelectedMovieId(movieId);
   };
 
   const handleSearchSubmit = (e) => {
@@ -521,49 +664,9 @@ export default function App() {
     if (!searchQuery.trim()) return;
 
     addToast(`Searching catalog for: "${searchQuery}"`, "QUERYING", "cyan");
-
-    if (backendAlive) {
-      setIsLoading(true);
-      fetch(`${backendUrl}/movies?query=${encodeURIComponent(searchQuery)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.results && data.results.length > 0) {
-            setMoviesList(data.results);
-            fetchMovieDetails(data.results[0].id);
-            setCurrentPage('home');
-          } else {
-            addToast("No match found in web feeds.", "NO RESULTS", "amber");
-          }
-          setIsLoading(false);
-        })
-        .catch(err => {
-          console.error("Search failed:", err);
-          setIsLoading(false);
-        });
-    } else {
-      const filtered = FALLBACK_MOVIES.filter(
-        m => m.title.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      if (filtered.length > 0) {
-        setMoviesList(filtered);
-        const match = filtered[0];
-        setSelectedMovie({
-          ...match,
-          reviews: computeMockModeration(match.reviews),
-          average_aspect_scores: computeMockAspectScores(match.reviews),
-          integrity_metrics: {
-            integrity_score: 95.0,
-            spam_count: 0,
-            bot_flag_count: 0,
-            duplicate_count: 0
-          }
-        });
-        setRecommendations(computeMockRecommendations(match.id));
-        setCurrentPage('home');
-      } else {
-        addToast("No local match. Try searching 'Inception' or 'Dark Knight'.", "NO RESULTS", "amber");
-      }
-    }
+    setActiveSearchQuery(searchQuery);
+    setCurrentPage('home');
+    setShowSuggestions(false);
   };
 
   const triggerLiveScraper = () => {
@@ -585,7 +688,7 @@ export default function App() {
           clearInterval(interval);
           setScrapeStatus("Parsing aggregated ratings...");
           setTimeout(() => {
-            fetchMovieDetails(selectedMovie.id, false);
+            queryClient.invalidateQueries({ queryKey: ['movieDetails', selectedMovie.id] });
             setScrapeStatus('');
             setIsLoading(false);
             addToast("Dynamic public web feedback Aggregated successfully.", "SCRAPE READY", "emerald");
@@ -636,6 +739,48 @@ export default function App() {
   const negativeReviews = reviews.filter(r => r.sentiment_label === 'NEGATIVE').length;
   const neutralReviews = reviews.filter(r => r.sentiment_label === 'NEUTRAL').length;
 
+  const getEffectiveWeights = (movie) => {
+    if (!movie) return { imdb: 0.40, tmdb: 0.20, metacritic: 0.10, nlp: 0.30 };
+    const ratingObj = movie.rating || {};
+    
+    if (ratingObj.effective_weights) {
+      return ratingObj.effective_weights;
+    }
+    
+    const baseWeights = { imdb: 0.40, tmdb: 0.20, metacritic: 0.10, nlp: 0.30 };
+    const available = [];
+    
+    const hasImdb = ratingObj.imdb_rating || ratingObj.imdb_score || movie.imdb_rating;
+    const hasTmdb = ratingObj.tmdb_score || movie.vote_average;
+    const hasMeta = ratingObj.metacritic_score || movie.metacritic_score;
+    const hasNlp = true; 
+    
+    if (hasImdb) available.push("imdb");
+    if (hasTmdb) available.push("tmdb");
+    if (hasMeta) available.push("metacritic");
+    if (hasNlp) available.push("nlp");
+    
+    const sumAvailable = available.reduce((acc, src) => acc + baseWeights[src], 0);
+    if (sumAvailable === 0) return baseWeights;
+    
+    const calculated = {};
+    Object.keys(baseWeights).forEach(src => {
+      if (available.includes(src)) {
+        calculated[src] = baseWeights[src] / sumAvailable;
+      } else {
+        calculated[src] = 0.0;
+      }
+    });
+    return calculated;
+  };
+
+  const effectiveWeights = getEffectiveWeights(selectedMovie);
+  
+  const isWeightAdjusted = Object.keys(effectiveWeights).some(src => {
+    const base = { imdb: 0.40, tmdb: 0.20, metacritic: 0.10, nlp: 0.30 };
+    return effectiveWeights[src] !== base[src];
+  });
+
   const hybridRating = selectedMovie.rating || {};
   const compositeScore = hybridRating.aggregate_score || hybridRating.aggregate_hybrid_score || selectedMovie.vote_average || 7.0;
 
@@ -644,7 +789,7 @@ export default function App() {
 
   // Recharts Data visualizations
   const ratingComparisonData = [
-    { name: 'IMDb', Score: parseFloat((hybridRating.imdb_score || selectedMovie.imdb_rating || 0).toFixed(1)) },
+    { name: 'IMDb', Score: parseFloat((hybridRating.imdb_rating || hybridRating.imdb_score || selectedMovie.imdb_rating || 0).toFixed(1)) },
     { name: 'TMDb', Score: parseFloat((hybridRating.tmdb_score || selectedMovie.vote_average || 0).toFixed(1)) },
     { name: 'Metacritic', Score: parseFloat((hybridRating.metacritic_score || selectedMovie.metacritic_score || 0).toFixed(1)) },
     { name: 'NLP Score', Score: parseFloat(((hybridRating.sentiment_avg_polarity || 0.4) * 5 + 5).toFixed(1)) },
@@ -822,14 +967,12 @@ export default function App() {
                     className={`search-suggestion-item ${idx === focusedIndex ? 'focused' : ''}`}
                   >
                     <div className="suggestion-thumb">
-                      {item.poster_path ? (
-                        <img
-                          src={item.poster_path.startsWith('http') ? item.poster_path : `https://image.tmdb.org/t/p/w92${item.poster_path}`}
-                          alt={item.title}
-                        />
-                      ) : (
-                        <div className="suggestion-thumb-empty">🎬</div>
-                      )}
+                      <ImageWithLoader
+                        src={item.poster_path ? (item.poster_path.startsWith('http') ? item.poster_path : `https://image.tmdb.org/t/p/w92${item.poster_path}`) : null}
+                        alt={item.title}
+                        title={item.title}
+                        small={true}
+                      />
                     </div>
                     <div className="suggestion-meta">
                       <span className="suggestion-title">{item.title}</span>
@@ -871,16 +1014,13 @@ export default function App() {
                 
                 return (
                   <div className="hero-banner-container glass-panel">
-                    {featured.poster_path ? (
-                      <img
-                        src={featured.poster_path.startsWith('http') ? featured.poster_path : `https://image.tmdb.org/t/p/original${featured.poster_path}`}
-                        alt={featured.title}
-                        className="hero-backdrop-img animate-fade"
-                        key={featured.id} // Enforces key refresh to trigger transition animations
-                      />
-                    ) : (
-                      <div className="hero-backdrop-img" style={{ background: '#0b0f19' }}></div>
-                    )}
+                    <ImageWithLoader
+                      src={featured.poster_path ? (featured.poster_path.startsWith('http') ? featured.poster_path : `https://image.tmdb.org/t/p/original${featured.poster_path}`) : null}
+                      alt={featured.title}
+                      title={featured.title}
+                      className="hero-backdrop-img animate-fade"
+                      key={featured.id} // Enforces key refresh to trigger transition animations
+                    />
                     <div className="hero-overlay-fade"></div>
                     <div className="hero-text-content">
                       <span className="hero-featured-tag">AI CINEMATIC TRENDING</span>
@@ -889,7 +1029,7 @@ export default function App() {
                       {/* Hero ratings and release details */}
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap' }}>
                         <span className="badge badge-tmdb" style={{ padding: '3px 8px', fontSize: '8.5px', background: 'linear-gradient(135deg, hsl(var(--accent-primary)), hsl(var(--accent-secondary)))', color: '#fff', border: 'none', fontWeight: 'bold' }}>CineScore: {compScore.toFixed(1)}</span>
-                        <span className="badge badge-imdb" style={{ padding: '3px 8px', fontSize: '8.5px', background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)', fontWeight: 'bold' }}>IMDb: {(featured.imdb_rating || featured.rating?.imdb_score || 7.5).toFixed(1)}</span>
+                        <span className="badge badge-imdb" style={{ padding: '3px 8px', fontSize: '8.5px', background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)', fontWeight: 'bold' }}>IMDb: {(featured.imdb_rating || featured.rating?.imdb_rating || featured.rating?.imdb_score || 7.5).toFixed(1)}</span>
                         <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', fontFamily: 'monospace', fontWeight: 'bold', marginLeft: '6px' }}>RELEASE: {year}</span>
                       </div>
 
@@ -982,7 +1122,7 @@ export default function App() {
                       <div id={rowId} className="netflix-row-slider">
                         {list.map(movie => {
                           const comp = movie.rating?.aggregate_hybrid_score || movie.vote_average || 7.0;
-                          const imdb = movie.imdb_rating || movie.rating?.imdb_score || 7.5;
+                          const imdb = movie.imdb_rating || movie.rating?.imdb_rating || movie.rating?.imdb_score || 7.5;
                           const rt = Math.round(comp * 10 - 4);
                           
                           return (
@@ -996,15 +1136,11 @@ export default function App() {
                               className="netflix-card glass-panel"
                             >
                               <div className="netflix-poster-frame">
-                                {movie.poster_path ? (
-                                  <img
-                                    src={movie.poster_path.startsWith('http') ? movie.poster_path : `https://image.tmdb.org/t/p/w300${movie.poster_path}`}
-                                    alt={movie.title}
-                                    loading="lazy"
-                                  />
-                                ) : (
-                                  <div className="no-poster-text">NO POSTER</div>
-                                )}
+                                <ImageWithLoader
+                                  src={movie.poster_path ? (movie.poster_path.startsWith('http') ? movie.poster_path : `https://image.tmdb.org/t/p/w300${movie.poster_path}`) : null}
+                                  alt={movie.title}
+                                  title={movie.title}
+                                />
                                 
                                 {/* Hover Rating overlays */}
                                 <div className="netflix-card-hover-overlay">
@@ -1059,33 +1195,58 @@ export default function App() {
         ) : (
           <>
             {/* PAGE 2: MOVIE DETAILS (Large backdrop, compare meters, streaming platforms) */}
-            {currentPage === 'details' && selectedMovie && (
+            {currentPage === 'details' && isDetailsError && (
+              <div className="details-section fade-in" style={{ padding: '40px 20px', textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
+                <div className="glass-panel" style={{ padding: '40px', borderRadius: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+                  <span style={{ fontSize: '3.5rem' }}>⚠️</span>
+                  <h2 style={{ fontSize: '24px', fontWeight: '800', color: 'hsl(var(--text-main))' }}>Failed to Load Details</h2>
+                  <p style={{ color: 'hsl(var(--text-muted))', fontSize: '14px', lineHeight: '1.6' }}>
+                    {detailsError?.message || "We encountered a network error while fetching details, reviews, composite ratings, and recommendations from the AI scraper."}
+                  </p>
+                  <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+                    <button 
+                      onClick={() => refetchDetails()} 
+                      className="scraper-button" 
+                      style={{ padding: '10px 20px', borderRadius: '8px' }}
+                    >
+                      Retry Connection
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setCurrentPage('home');
+                        setSelectedMovieId(FALLBACK_MOVIES[0].id);
+                      }} 
+                      className="nav-tab-btn active"
+                      style={{ padding: '10px 20px', borderRadius: '8px' }}
+                    >
+                      Back to Home
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentPage === 'details' && !isDetailsError && selectedMovie && (
               <div className="details-section fade-in">
                 {/* Backdrop Banner blurred card */}
                 <div className="movie-details-backdrop-banner">
-                  {selectedMovie.poster_path ? (
-                    <img
-                      src={selectedMovie.poster_path.startsWith('http') ? selectedMovie.poster_path : `https://image.tmdb.org/t/p/original${selectedMovie.poster_path}`}
-                      alt={selectedMovie.title}
-                      className="details-backdrop-img"
-                    />
-                  ) : (
-                    <div className="details-backdrop-img" style={{ background: '#1e293b' }}></div>
-                  )}
+                  <ImageWithLoader
+                    src={selectedMovie.poster_path ? (selectedMovie.poster_path.startsWith('http') ? selectedMovie.poster_path : `https://image.tmdb.org/t/p/original${selectedMovie.poster_path}`) : null}
+                    alt={selectedMovie.title}
+                    title={selectedMovie.title}
+                    className="details-backdrop-img"
+                  />
                   <div className="details-backdrop-overlay"></div>
                 </div>
 
                 {/* Primary floating details card */}
                 <div className="movie-detail-card glass-panel">
                   <div className="movie-detail-poster">
-                    {selectedMovie.poster_path ? (
-                      <img
-                        src={selectedMovie.poster_path.startsWith('http') ? selectedMovie.poster_path : `https://image.tmdb.org/t/p/w300${selectedMovie.poster_path}`}
-                        alt={selectedMovie.title}
-                      />
-                    ) : (
-                      <div className="no-poster-text">NO POSTER</div>
-                    )}
+                    <ImageWithLoader
+                      src={selectedMovie.poster_path ? (selectedMovie.poster_path.startsWith('http') ? selectedMovie.poster_path : `https://image.tmdb.org/t/p/w300${selectedMovie.poster_path}`) : null}
+                      alt={selectedMovie.title}
+                      title={selectedMovie.title}
+                    />
                   </div>
 
                   <div className="movie-detail-content">
@@ -1103,8 +1264,71 @@ export default function App() {
                           View Analytics &rarr;
                         </button>
                       </div>
-                      <p className="movie-detail-release">RELEASE DATE: {selectedMovie.release_date || 'N/A'}</p>
-                      <p className="movie-detail-overview">{selectedMovie.overview}</p>
+                      
+                      <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', marginTop: '6px', marginBottom: '8px' }}>
+                        <p className="movie-detail-release" style={{ margin: 0 }}>RELEASE DATE: {selectedMovie.release_date || 'N/A'}</p>
+                        <span style={{ color: 'hsl(var(--text-muted))' }}>•</span>
+                        <p className="movie-detail-release" style={{ margin: 0 }}>RUNTIME: {selectedMovie.runtime ? `${selectedMovie.runtime} min` : 'N/A'}</p>
+                      </div>
+                      
+                      {/* Genres badges */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
+                        {selectedMovie.genres && Array.isArray(selectedMovie.genres) && selectedMovie.genres.length > 0 ? (
+                          selectedMovie.genres.map((g, i) => {
+                            const name = typeof g === 'object' ? g.name : g;
+                            return (
+                              <span key={i} className="badge" style={{ 
+                                background: 'rgba(255, 255, 255, 0.08)', 
+                                border: '1px solid rgba(255, 255, 255, 0.1)', 
+                                color: 'hsl(var(--text-main))', 
+                                padding: '3px 8px', 
+                                borderRadius: '4px',
+                                fontSize: '10.5px'
+                              }}>
+                                {name}
+                              </span>
+                            );
+                          })
+                        ) : (
+                          <span style={{ color: 'hsl(var(--text-muted))', fontSize: '11px' }}>Genres: N/A</span>
+                        )}
+                      </div>
+
+                      <p className="movie-detail-overview">{selectedMovie.overview || "No overview available."}</p>
+                      
+                      {/* Developer Diagnostics HUD */}
+                      {(import.meta.env.DEV || import.meta.env.MODE === 'development') && (
+                        <div className="developer-diagnostics-hud" style={{
+                          marginTop: '16px',
+                          marginBottom: '16px',
+                          padding: '12px 16px',
+                          borderRadius: '12px',
+                          background: 'rgba(255, 255, 255, 0.02)',
+                          border: '1px solid rgba(255, 255, 255, 0.06)',
+                          backdropFilter: 'blur(8px)',
+                          fontSize: '11px',
+                          color: 'hsl(var(--text-muted))',
+                          fontFamily: 'monospace'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', paddingBottom: '6px' }}>
+                            <span style={{ fontSize: '12px' }}>🛠️</span>
+                            <span style={{ fontWeight: 'bold', color: 'hsl(var(--text-main))', letterSpacing: '0.05em' }}>DEVELOPER DIAGNOSTICS</span>
+                            <span className="badge" style={{ marginLeft: 'auto', background: 'rgba(59, 130, 246, 0.15)', border: '1px solid rgba(59, 130, 246, 0.25)', color: '#60a5fa', fontSize: '9px', padding: '1px 5px', borderRadius: '3px' }}>DEV MODE</span>
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
+                            <div>TMDb ID: <strong style={{ color: 'hsl(var(--text-main))' }}>{selectedMovie.id}</strong></div>
+                            <div>IMDb ID: <strong style={{ color: 'hsl(var(--text-main))' }}>{selectedMovie.imdb_id || 'None'}</strong></div>
+                            <div>Type: <strong style={{ color: 'hsl(var(--text-main))' }}>{selectedMovie.media_type || 'Movie'}</strong></div>
+                            <div>Source: <strong style={{ color: 'hsl(var(--text-main))' }}>{selectedMovie.rating_source || 'N/A'}</strong></div>
+                          </div>
+                          {selectedMovie.omdb_status === 'error' && selectedMovie.omdb_error && (
+                            <div style={{ marginTop: '8px', color: '#f87171', borderTop: '1px dashed rgba(248, 113, 113, 0.15)', paddingTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span>⚠️</span>
+                              <span>Resolution Failure: {selectedMovie.omdb_error}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div>
@@ -1178,7 +1402,10 @@ export default function App() {
 
                     <div style={{ width: '100%', borderTop: '1px solid hsla(var(--text-main) / 0.05)', paddingTop: '10px' }}>
                       <p style={{ fontSize: '10px', fontFamily: 'monospace', color: 'hsl(var(--text-muted))', lineHeight: '1.4' }}>
-                        Formula Weight:<br/>0.4(IMDb) + 0.2(TMDb) + 0.1(Meta) + 0.3(NLP)
+                        Effective Formula:<br/>
+                        {isWeightAdjusted 
+                          ? `${effectiveWeights.imdb > 0 ? `${effectiveWeights.imdb.toFixed(2)}(IMDb) + ` : ''}${effectiveWeights.tmdb > 0 ? `${effectiveWeights.tmdb.toFixed(2)}(TMDb) + ` : ''}${effectiveWeights.metacritic > 0 ? `${effectiveWeights.metacritic.toFixed(2)}(Meta) + ` : ''}${effectiveWeights.nlp > 0 ? `${effectiveWeights.nlp.toFixed(2)}(NLP)` : ''}`
+                          : "0.40(IMDb) + 0.20(TMDb) + 0.10(Meta) + 0.30(NLP)"}
                       </p>
                     </div>
                   </div>
@@ -1187,61 +1414,154 @@ export default function App() {
                   <div className="breakdown-card glass-panel">
                     <h3 className="catalog-title" style={{ marginBottom: '16px' }}>Platform Comparisons</h3>
                     
+                    {isWeightAdjusted && (
+                      <div className="weight-adjusted-alert glass-panel pulse-glow" style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '12px 16px',
+                        marginBottom: '20px',
+                        borderRadius: '12px',
+                        background: 'rgba(235, 140, 16, 0.08)',
+                        border: '1px dashed rgba(235, 140, 16, 0.3)',
+                        transition: 'var(--transition-smooth)'
+                      }}>
+                        <span style={{ fontSize: '18px', color: '#f59e0b' }}>⚠️</span>
+                        <div style={{ flexGrow: 1 }}>
+                          <h4 style={{ fontSize: '12px', fontWeight: '700', color: '#fbbf24', margin: 0 }}>Scoring Weights Redistributed</h4>
+                          <p style={{ fontSize: '10.5px', color: 'hsl(var(--text-muted))', margin: '2px 0 0 0' }}>
+                            Rating sources unavailable. Weights have been automatically redistributed proportionally to maintain aggregate balance.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="bar-list">
                       {/* IMDb */}
-                      <div className="bar-item">
+                      <div className="bar-item" style={{ opacity: effectiveWeights.imdb > 0 ? 1 : 0.65, transition: 'opacity 0.4s ease' }}>
                         <div className="bar-label-row">
-                          <span style={{ color: 'hsl(var(--text-main))', fontWeight: '600' }}>IMDb Score (40% Weight)</span>
+                          <span style={{ color: 'hsl(var(--text-main))', fontWeight: '600' }}>
+                            IMDb Score <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', marginLeft: '4px' }}>({(effectiveWeights.imdb * 100).toFixed(0)}% Weight)</span>
+                          </span>
                           <span style={{ fontWeight: '700', color: '#fbbf24' }}>
-                            {hybridRating.imdb_score || selectedMovie.imdb_rating
-                              ? `${(hybridRating.imdb_score || selectedMovie.imdb_rating).toFixed(1)}/10`
-                              : "Rating unavailable"}
+                            {effectiveWeights.imdb > 0 && (hybridRating.imdb_rating || hybridRating.imdb_score || selectedMovie.imdb_rating)
+                              ? `${(hybridRating.imdb_rating || hybridRating.imdb_score || selectedMovie.imdb_rating).toFixed(1)}/10`
+                              : (() => {
+                                  const status = hybridRating.omdb_status || selectedMovie.omdb_status;
+                                  const error = hybridRating.omdb_error || selectedMovie.omdb_error;
+                                  if (status === "error" && error) {
+                                    if (error === "Movie not found!" || error === "Movie rating is missing or N/A on OMDb") {
+                                      return "IMDb Rating Unavailable";
+                                    }
+                                    return `OMDb Error: ${error}`;
+                                  }
+                                  return "IMDb Rating Unavailable";
+                                })()}
                           </span>
                         </div>
                         <div className="bar-track">
-                          <div className="bar-fill" style={{ width: `${(hybridRating.imdb_score || selectedMovie.imdb_rating || 0) * 10}%`, backgroundColor: '#fbbf24' }}></div>
+                          <div className="bar-fill" style={{ width: `${(effectiveWeights.imdb > 0 ? (hybridRating.imdb_rating || hybridRating.imdb_score || selectedMovie.imdb_rating || 0) : 0) * 10}%`, backgroundColor: '#fbbf24' }}></div>
                         </div>
+                        {effectiveWeights.imdb <= 0 && hybridRating.imdb_status_detail && (
+                          <div style={{ 
+                            fontSize: '10.5px', 
+                            color: '#ef4444', 
+                            marginTop: '6px', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '4px',
+                            background: 'rgba(239, 68, 68, 0.08)',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            border: '1px solid rgba(239, 68, 68, 0.15)'
+                          }}>
+                            <span>⚠️</span> <span>{hybridRating.imdb_status_detail}</span>
+                          </div>
+                        )}
                       </div>
 
                       {/* TMDb */}
-                      <div className="bar-item">
+                      <div className="bar-item" style={{ opacity: effectiveWeights.tmdb > 0 ? 1 : 0.45, transition: 'opacity 0.4s ease' }}>
                         <div className="bar-label-row">
-                          <span style={{ color: 'hsl(var(--text-main))', fontWeight: '600' }}>TMDb Score (20% Weight)</span>
+                          <span style={{ color: 'hsl(var(--text-main))', fontWeight: '600' }}>
+                            TMDb Score <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', marginLeft: '4px' }}>({(effectiveWeights.tmdb * 100).toFixed(0)}% Weight)</span>
+                          </span>
                           <span style={{ fontWeight: '700', color: 'hsl(var(--accent-secondary))' }}>
-                            {hybridRating.tmdb_score || selectedMovie.vote_average
+                            {effectiveWeights.tmdb > 0 && (hybridRating.tmdb_score || selectedMovie.vote_average)
                               ? `${(hybridRating.tmdb_score || selectedMovie.vote_average).toFixed(1)}/10`
                               : "Rating unavailable"}
                           </span>
                         </div>
                         <div className="bar-track">
-                          <div className="bar-fill" style={{ width: `${(hybridRating.tmdb_score || selectedMovie.vote_average || 0) * 10}%`, backgroundColor: 'hsl(var(--accent-secondary))' }}></div>
+                          <div className="bar-fill" style={{ width: `${(effectiveWeights.tmdb > 0 ? (hybridRating.tmdb_score || selectedMovie.vote_average || 0) : 0) * 10}%`, backgroundColor: 'hsl(var(--accent-secondary))' }}></div>
                         </div>
                       </div>
 
                       {/* Metacritic */}
-                      <div className="bar-item">
+                      <div className="bar-item" style={{ opacity: effectiveWeights.metacritic > 0 ? 1 : 0.45, transition: 'opacity 0.4s ease' }}>
                         <div className="bar-label-row">
-                          <span style={{ color: 'hsl(var(--text-main))', fontWeight: '600' }}>Metacritic Score (10% Weight)</span>
+                          <span style={{ color: 'hsl(var(--text-main))', fontWeight: '600' }}>
+                            Metacritic Score <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', marginLeft: '4px' }}>({(effectiveWeights.metacritic * 100).toFixed(0)}% Weight)</span>
+                          </span>
                           <span style={{ fontWeight: '700', color: '#f87171' }}>
-                            {hybridRating.metacritic_score || selectedMovie.metacritic_score
+                            {effectiveWeights.metacritic > 0 && (hybridRating.metacritic_score || selectedMovie.metacritic_score)
                               ? `${((hybridRating.metacritic_score || selectedMovie.metacritic_score) * 10).toFixed(0)}/100`
                               : "Rating unavailable"}
                           </span>
                         </div>
                         <div className="bar-track">
-                          <div className="bar-fill" style={{ width: `${(hybridRating.metacritic_score || selectedMovie.metacritic_score || 0) * 10}%`, backgroundColor: '#f87171' }}></div>
+                          <div className="bar-fill" style={{ width: `${(effectiveWeights.metacritic > 0 ? (hybridRating.metacritic_score || selectedMovie.metacritic_score || 0) : 0) * 10}%`, backgroundColor: '#f87171' }}></div>
                         </div>
                       </div>
 
                       {/* NLP Review Sentiment */}
-                      <div className="bar-item">
+                      <div className="bar-item" style={{ opacity: effectiveWeights.nlp > 0 ? 1 : 0.45, transition: 'opacity 0.4s ease' }}>
                         <div className="bar-label-row">
-                          <span style={{ color: 'hsl(var(--text-main))', fontWeight: '600' }}>NLP Review Sentiment (30% Weight)</span>
-                          <span style={{ fontWeight: '700', color: '#4ade80' }}>{((hybridRating.sentiment_avg_polarity || 0.4) * 5 + 5).toFixed(1)}/10</span>
+                          <span style={{ color: 'hsl(var(--text-main))', fontWeight: '600' }}>
+                            NLP Review Sentiment <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', marginLeft: '4px' }}>({(effectiveWeights.nlp * 100).toFixed(0)}% Weight)</span>
+                          </span>
+                          <span style={{ fontWeight: '700', color: '#4ade80' }}>
+                            {effectiveWeights.nlp > 0
+                              ? `${((hybridRating.sentiment_avg_polarity || 0.4) * 5 + 5).toFixed(1)}/10`
+                              : "Rating unavailable"}
+                          </span>
                         </div>
                         <div className="bar-track">
-                          <div className="bar-fill" style={{ width: `${(((hybridRating.sentiment_avg_polarity || 0.4) * 5 + 5)) * 10}%`, backgroundColor: '#4ade80' }}></div>
+                          <div className="bar-fill" style={{ width: `${(effectiveWeights.nlp > 0 ? ((hybridRating.sentiment_avg_polarity || 0.4) * 5 + 5) : 0) * 10}%`, backgroundColor: '#4ade80' }}></div>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Dynamic Weight Allocation Model Card */}
+                  <div className="breakdown-card glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div>
+                      <h3 className="catalog-title text-gradient">Dynamic Weights Breakdown</h3>
+                      <p style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}>
+                        Proportional balance model allocating CineScore weights relative to active providers.
+                      </p>
+                    </div>
+
+                    <div className="weights-breakdown-details" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid hsla(var(--text-main)/0.04)', paddingBottom: '6px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: '500', color: 'hsl(var(--text-muted))' }}>Active Sources:</span>
+                        <span style={{ fontSize: '11px', fontWeight: '700', color: '#22c55e' }}>
+                          {Object.keys(effectiveWeights).filter(k => effectiveWeights[k] > 0).map(k => k.toUpperCase()).join(", ")}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid hsla(var(--text-main)/0.04)', paddingBottom: '6px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: '500', color: 'hsl(var(--text-muted))' }}>Missing Sources:</span>
+                        <span style={{ fontSize: '11px', fontWeight: '700', color: '#ef4444' }}>
+                          {Object.keys(effectiveWeights).filter(k => effectiveWeights[k] === 0).length > 0
+                            ? Object.keys(effectiveWeights).filter(k => effectiveWeights[k] === 0).map(k => k.toUpperCase()).join(", ")
+                            : "NONE"}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '2px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: '500', color: 'hsl(var(--text-muted))' }}>Model Balance Status:</span>
+                        <span style={{ fontSize: '11px', fontWeight: '700', color: isWeightAdjusted ? '#fbbf24' : '#22c55e' }}>
+                          {isWeightAdjusted ? "REDISTRIBUTED (100% SECURED)" : "STANDARD STABLE"}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -1265,14 +1585,11 @@ export default function App() {
                           className="rec-card glass-panel"
                         >
                           <div className="rec-poster">
-                            {rec.poster_path ? (
-                              <img
-                                src={rec.poster_path.startsWith('http') ? rec.poster_path : `https://image.tmdb.org/t/p/w200${rec.poster_path}`}
-                                alt={rec.title}
-                              />
-                            ) : (
-                              <div className="no-poster-text">NO POSTER</div>
-                            )}
+                            <ImageWithLoader
+                              src={rec.poster_path ? (rec.poster_path.startsWith('http') ? rec.poster_path : `https://image.tmdb.org/t/p/w200${rec.poster_path}`) : null}
+                              alt={rec.title}
+                              title={rec.title}
+                            />
                           </div>
                           <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                             <div>
@@ -1301,216 +1618,19 @@ export default function App() {
               </div>
             )}
 
-            {/* PAGE 3: ANALYTICS (Recharts Grid visual layouts) */}
+            {/* PAGE 3: ANALYTICS (Lazy Loaded Recharts Components via Suspense) */}
             {currentPage === 'analytics' && selectedMovie && (
-              <div className="analytics-section fade-in">
-                <div style={{ marginBottom: '24px' }}>
-                  <h2 className="movie-detail-title" style={{ fontSize: '24px', marginBottom: '6px' }}>
-                    Visual Analytics: <span className="accent-gradient">{selectedMovie.title}</span>
-                  </h2>
-                  <p style={{ color: 'hsl(var(--text-muted))', fontSize: '12.5px' }}>
-                    Interactive charts aggregating sentiment distributions, dynamic aspect polarity, and review pool authenticity models.
-                  </p>
-                </div>
-
-                {/* Grid Visual Charts */}
-                <div className="analytics-charts-grid">
-                  
-                  {/* Rating comparison */}
-                  <div className="chart-card glass-panel">
-                    <h4 className="chart-card-title text-gradient">Score Comparisons</h4>
-                    <p className="chart-card-desc">Normalized scores out of 10 comparing primary catalog providers.</p>
-                    <div className="chart-wrapper">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={ratingComparisonData} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                          <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
-                          <YAxis domain={[0, 10]} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
-                          <Tooltip contentStyle={{ backgroundColor: 'rgba(var(--glass-bg), 0.95)', border: '1px solid hsla(var(--text-main) / 0.1)', borderRadius: '12px', color: 'hsl(var(--text-main))' }} />
-                          <Bar dataKey="Score" radius={[4, 4, 0, 0]}>
-                            {ratingComparisonData.map((entry, index) => {
-                              const colors = ['#fbbf24', 'hsl(var(--accent-secondary))', '#f87171', '#4ade80', 'hsl(var(--accent-primary))'];
-                              return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
-                            })}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  {/* Sentiment Pie */}
-                  <div className="chart-card glass-panel">
-                    <h4 className="chart-card-title text-gradient">Vibe Distribution</h4>
-                    <p className="chart-card-desc">Volume of positive, negative, and neutral review classifications.</p>
-                    <div className="chart-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {sentimentPieData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={sentimentPieData}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={60}
-                              outerRadius={80}
-                              paddingAngle={5}
-                              dataKey="value"
-                            >
-                              {sentimentPieData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
-                              ))}
-                            </Pie>
-                            <Tooltip contentStyle={{ backgroundColor: 'rgba(var(--glass-bg), 0.95)', border: '1px solid hsla(var(--text-main) / 0.1)', borderRadius: '12px', color: 'hsl(var(--text-main))' }} />
-                            <Legend verticalAlign="bottom" height={36} tick={{ fill: 'hsl(var(--text-main))', fontSize: 10 }} />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      ) : (
-                        <div style={{ color: 'hsl(var(--text-muted))', fontSize: '12px' }}>Scrape feedback to compile sentiment ratio pie.</div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Aspect Based (ABSA) aspect scores */}
-                  <div className="chart-card glass-panel">
-                    <h4 className="chart-card-title text-gradient">Aspect breakdowns (ABSA)</h4>
-                    <p className="chart-card-desc">Average sentiment ratings across key aesthetic film vectors.</p>
-                    <div className="chart-wrapper">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={aspectData} layout="vertical" margin={{ top: 15, right: 10, left: 10, bottom: 5 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                          <XAxis type="number" domain={[0, 10]} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
-                          <YAxis dataKey="name" type="category" tick={{ fill: 'hsl(var(--text-main))', fontSize: 10 }} axisLine={false} tickLine={false} width={80} />
-                          <Tooltip contentStyle={{ backgroundColor: 'rgba(var(--glass-bg), 0.95)', border: '1px solid hsla(var(--text-main) / 0.1)', borderRadius: '12px', color: 'hsl(var(--text-main))' }} />
-                          <Bar dataKey="Score" radius={[0, 4, 4, 0]} barSize={12}>
-                            {aspectData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  {/* Integrity Audit circular shield card */}
-                  <div className="chart-card glass-panel" style={{ justifyContent: 'space-between' }}>
-                    <div>
-                      <h4 className="chart-card-title text-gradient">Pool Authenticity Shield</h4>
-                      <p className="chart-card-desc">Credibility metrics evaluating duplicated text and automation flags.</p>
-                    </div>
-                    
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexGrow: 1, padding: '10px 0' }}>
-                      <div className="integrity-score-ring" style={{ width: '90px', height: '90px', flexShrink: 0 }}>
-                        <svg width="100%" height="100%" viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
-                          <circle cx="50" cy="50" r="40" fill="transparent" stroke="rgba(255,255,255,0.03)" strokeWidth="8" />
-                          <circle
-                            cx="50"
-                            cy="50"
-                            r="40"
-                            fill="transparent"
-                            stroke={integrity.integrity_score > 85 ? '#22c55e' : (integrity.integrity_score > 60 ? '#fbbf24' : '#ef4444')}
-                            strokeWidth="8"
-                            strokeDasharray={2 * Math.PI * 40}
-                            strokeDashoffset={2 * Math.PI * 40 * (1 - integrity.integrity_score / 100.0)}
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                        <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <span style={{ fontSize: '18px', fontWeight: '800', color: 'hsl(var(--text-main))' }}>{integrity.integrity_score}%</span>
-                          <span style={{ fontSize: '6.5px', color: 'hsl(var(--text-muted))', letterSpacing: '0.05em', fontWeight: 'bold' }}>CREDIBILITY</span>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flexGrow: 1, fontSize: '11px', fontFamily: 'monospace' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed hsla(var(--text-main)/0.06)', paddingBottom: '4px' }}>
-                          <span style={{ color: 'hsl(var(--text-muted))' }}>Authenticity Rank:</span>
-                          <span style={{ fontWeight: 'bold', color: integrity.integrity_score > 85 ? '#4ade80' : '#fbbf24' }}>
-                            {integrity.integrity_score > 85 ? 'SECURED' : 'CHECKED'}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed hsla(var(--text-main)/0.06)', paddingBottom: '4px' }}>
-                          <span style={{ color: 'hsl(var(--text-muted))' }}>Spam Flagged:</span>
-                          <span style={{ fontWeight: 'bold', color: integrity.spam_count > 0 ? '#fbbf24' : 'hsl(var(--text-muted))' }}>{integrity.spam_count}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed hsla(var(--text-main)/0.06)', paddingBottom: '4px' }}>
-                          <span style={{ color: 'hsl(var(--text-muted))' }}>Duplicates Caught:</span>
-                          <span style={{ fontWeight: 'bold', color: integrity.duplicate_count > 0 ? '#fbbf24' : 'hsl(var(--text-muted))' }}>{integrity.duplicate_count}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '4px' }}>
-                          <span style={{ color: 'hsl(var(--text-muted))' }}>Automated Bots:</span>
-                          <span style={{ fontWeight: 'bold', color: integrity.bot_flag_count > 0 ? '#ef4444' : 'hsl(var(--text-muted))' }}>{integrity.bot_flag_count}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Audience Mood Bar Charts */}
-                  <div className="chart-card glass-panel">
-                    <h4 className="chart-card-title text-gradient">Audience Mood Gauge</h4>
-                    <p className="chart-card-desc">Calculated emotional signals detected in aggregated review texts.</p>
-                    <div className="mood-analysis-container">
-                      <div className="mood-bar-item">
-                        <div className="mood-bar-label-row">
-                          <span style={{ color: 'hsl(var(--text-main))' }}>Narrative Focus</span>
-                          <span style={{ color: '#a78bfa' }}>{emotionMetrics.narrative}%</span>
-                        </div>
-                        <div className="mood-bar-track">
-                          <div className="mood-bar-fill" style={{ width: `${emotionMetrics.narrative}%`, background: '#a78bfa' }}></div>
-                        </div>
-                      </div>
-                      <div className="mood-bar-item">
-                        <div className="mood-bar-label-row">
-                          <span style={{ color: 'hsl(var(--text-main))' }}>Cinema Joy & Excitement</span>
-                          <span style={{ color: '#22c55e' }}>{emotionMetrics.joy}%</span>
-                        </div>
-                        <div className="mood-bar-track">
-                          <div className="mood-bar-fill" style={{ width: `${emotionMetrics.joy}%`, background: '#22c55e' }}></div>
-                        </div>
-                      </div>
-                      <div className="mood-bar-item">
-                        <div className="mood-bar-label-row">
-                          <span style={{ color: 'hsl(var(--text-main))' }}>Surprise & Speculation</span>
-                          <span style={{ color: '#facc15' }}>{emotionMetrics.surprise}%</span>
-                        </div>
-                        <div className="mood-bar-track">
-                          <div className="mood-bar-fill" style={{ width: `${emotionMetrics.surprise}%`, background: '#facc15' }}></div>
-                        </div>
-                      </div>
-                      <div className="mood-bar-item">
-                        <div className="mood-bar-label-row">
-                          <span style={{ color: 'hsl(var(--text-main))' }}>Dramatic Tension</span>
-                          <span style={{ color: '#ef4444' }}>{emotionMetrics.tension}%</span>
-                        </div>
-                        <div className="mood-bar-track">
-                          <div className="mood-bar-fill" style={{ width: `${emotionMetrics.tension}%`, background: '#ef4444' }}></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Positivity Area Timeline */}
-                  <div className="chart-card glass-panel">
-                    <h4 className="chart-card-title text-gradient">Chronological Sentiment Vibe</h4>
-                    <p className="chart-card-desc">Moving average of review sentiment ratings over the extracted review timeline.</p>
-                    <div className="chart-wrapper">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={positivityTrendData} margin={{ top: 20, right: 10, left: -25, bottom: 5 }}>
-                          <defs>
-                            <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="hsl(var(--accent-primary))" stopOpacity={0.4} />
-                              <stop offset="95%" stopColor="hsl(var(--accent-primary))" stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                          <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
-                          <YAxis domain={[0, 10]} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
-                          <Tooltip contentStyle={{ backgroundColor: 'rgba(var(--glass-bg), 0.95)', border: '1px solid hsla(var(--text-main) / 0.1)', borderRadius: '12px', color: 'hsl(var(--text-main))' }} />
-                          <Area type="monotone" dataKey="Vibe Score" stroke="hsl(var(--accent-primary))" strokeWidth={2} fillOpacity={1} fill="url(#trendGradient)" />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
+              <Suspense fallback={<AnalyticsSkeleton />}>
+                <AnalyticsCharts
+                  movieTitle={selectedMovie.title}
+                  ratingComparisonData={ratingComparisonData}
+                  sentimentPieData={sentimentPieData}
+                  aspectData={aspectData}
+                  integrity={integrity}
+                  emotionMetrics={emotionMetrics}
+                  positivityTrendData={positivityTrendData}
+                />
+              </Suspense>
             )}
 
             {/* PAGE 4: REVIEWS (Dashboard listing spambot flags) */}
@@ -1681,5 +1801,22 @@ export default function App() {
       </div>
 
     </div>
+  );
+}
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AppContent />
+    </QueryClientProvider>
   );
 }

@@ -1,8 +1,7 @@
-import requests
+import httpx
 from bs4 import BeautifulSoup
 from typing import List, Dict, Any, Optional
 import re
-
 class IMDbScraper:
     """
     Scrapes user reviews from IMDb.com using BeautifulSoup.
@@ -13,21 +12,21 @@ class IMDbScraper:
             "Accept-Language": "en-US,en;q=0.9"
         }
 
-    def scrape_reviews(self, movie_title: str, imdb_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def scrape_reviews(self, movie_title: str, imdb_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Scrapes review listings from IMDb for a given movie title or IMDb ID.
         """
         if imdb_id:
             url = f"https://www.imdb.com/title/{imdb_id}/reviews"
             try:
-                response = requests.get(url, headers=self.headers, timeout=6)
-                if response.status_code == 200:
-                    return self._parse_imdb_reviews_page(response.text)
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(url, headers=self.headers, timeout=6.0)
+                    if response.status_code == 200:
+                        return self._parse_imdb_reviews_page(response.text)
             except Exception as e:
                 print(f"IMDb Live Scrape failed for ID {imdb_id}: {e}")
                 
         return self._get_fallback_reviews(movie_title)
-
     def _parse_imdb_reviews_page(self, html: str) -> List[Dict[str, Any]]:
         """
         Parses IMDb reviews page using BeautifulSoup.

@@ -1,8 +1,7 @@
-import requests
+import httpx
 from bs4 import BeautifulSoup
 from typing import List, Dict, Any
 import re
-
 class RottenTomatoesScraper:
     """
     Scrapes critic reviews and ratings from RottenTomatoes.com using BeautifulSoup.
@@ -23,7 +22,7 @@ class RottenTomatoesScraper:
         slug = re.sub(r'[\s_]+', '_', slug)
         return slug
 
-    def scrape_reviews(self, movie_title: str) -> List[Dict[str, Any]]:
+    async def scrape_reviews(self, movie_title: str) -> List[Dict[str, Any]]:
         """
         Scrapes critic reviews from Rotten Tomatoes for a given movie title.
         """
@@ -31,14 +30,14 @@ class RottenTomatoesScraper:
         url = f"https://www.rottentomatoes.com/m/{slug}/reviews"
         
         try:
-            response = requests.get(url, headers=self.headers, timeout=6)
-            if response.status_code == 200:
-                return self._parse_rotten_tomatoes_page(response.text)
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, headers=self.headers, timeout=6.0)
+                if response.status_code == 200:
+                    return self._parse_rotten_tomatoes_page(response.text)
         except Exception as e:
             print(f"Rotten Tomatoes Live Scrape failed for {movie_title} (slug: {slug}): {e}")
             
         return self._get_fallback_reviews(movie_title)
-
     def _parse_rotten_tomatoes_page(self, html: str) -> List[Dict[str, Any]]:
         """
         Parses Rotten Tomatoes critic reviews page using BeautifulSoup.

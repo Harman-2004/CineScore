@@ -9,11 +9,57 @@ from app.auth import router as auth_router
 from app.sentiment import router as sentiment_router
 from app.routers import movies, reviews, recommendations, rest
 
+from sqlalchemy import inspect, text
+
 # Automatically create database tables if they do not exist
 try:
     Base.metadata.create_all(bind=engine)
+    
+    # Automatic SQLite schema column migrations check
+    inspector = inspect(engine)
+    movie_cols = [c["name"] for c in inspector.get_columns("movies")]
+    if "imdb_id" not in movie_cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE movies ADD COLUMN imdb_id VARCHAR"))
+        print("[Database Migration] Column 'imdb_id' successfully added to 'movies' table.")
+        
+    if "runtime" not in movie_cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE movies ADD COLUMN runtime INTEGER"))
+        print("[Database Migration] Column 'runtime' successfully added to 'movies' table.")
+
+    if "is_details_loaded" not in movie_cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE movies ADD COLUMN is_details_loaded BOOLEAN DEFAULT 0 NOT NULL"))
+        print("[Database Migration] Column 'is_details_loaded' successfully added to 'movies' table.")
+
+    if "omdb_status" not in movie_cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE movies ADD COLUMN omdb_status VARCHAR"))
+        print("[Database Migration] Column 'omdb_status' successfully added to 'movies' table.")
+
+    if "omdb_error" not in movie_cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE movies ADD COLUMN omdb_error VARCHAR"))
+        print("[Database Migration] Column 'omdb_error' successfully added to 'movies' table.")
+
+    if "media_type" not in movie_cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE movies ADD COLUMN media_type VARCHAR"))
+        print("[Database Migration] Column 'media_type' successfully added to 'movies' table.")
+
+    if "rating_source" not in movie_cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE movies ADD COLUMN rating_source VARCHAR"))
+        print("[Database Migration] Column 'rating_source' successfully added to 'movies' table.")
+        
+    review_cols = [c["name"] for c in inspector.get_columns("reviews")]
+    if "aspect_scores" not in review_cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE reviews ADD COLUMN aspect_scores JSON"))
+        print("[Database Migration] Column 'aspect_scores' successfully added to 'reviews' table.")
 except Exception as e:
-    print(f"WARNING: Could not automatically initialize database tables: {e}")
+    print(f"WARNING: Could not automatically initialize database tables or run migrations: {e}")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

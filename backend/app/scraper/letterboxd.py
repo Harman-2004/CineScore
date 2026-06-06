@@ -1,8 +1,7 @@
-import requests
+import httpx
 from bs4 import BeautifulSoup
 from typing import List, Dict, Any
 import re
-
 class LetterboxdScraper:
     """
     Scrapes popular movie reviews from Letterboxd.com using BeautifulSoup.
@@ -23,7 +22,7 @@ class LetterboxdScraper:
         slug = re.sub(r'[\s-]+', '-', slug)
         return slug
 
-    def scrape_reviews(self, movie_title: str) -> List[Dict[str, Any]]:
+    async def scrape_reviews(self, movie_title: str) -> List[Dict[str, Any]]:
         """
         Scrapes review listings from Letterboxd.com for a given movie title.
         """
@@ -31,14 +30,14 @@ class LetterboxdScraper:
         url = f"https://letterboxd.com/film/{slug}/reviews/by/activity/"
         
         try:
-            response = requests.get(url, headers=self.headers, timeout=6)
-            if response.status_code == 200:
-                return self._parse_letterboxd_page(response.text)
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, headers=self.headers, timeout=6.0)
+                if response.status_code == 200:
+                    return self._parse_letterboxd_page(response.text)
         except Exception as e:
             print(f"Letterboxd Live Scrape failed for {movie_title} (slug: {slug}): {e}")
             
         return self._get_fallback_reviews(movie_title)
-
     def _parse_letterboxd_page(self, html: str) -> List[Dict[str, Any]]:
         """
         Parses Letterboxd reviews page using BeautifulSoup.

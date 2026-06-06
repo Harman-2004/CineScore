@@ -21,42 +21,36 @@ class UnifiedMovieScraper:
         Gathers reviews from all four external platforms, runs sentiment analysis,
         and returns a unified aggregated list of reviews.
         """
-        aggregated_reviews = []
+        import asyncio
         
-        # 1. Fetch from IMDb
-        try:
-            imdb_reviews = imdb_scraper.scrape_reviews(movie_title, imdb_id)
-            aggregated_reviews.extend(imdb_reviews)
-        except Exception as e:
-            print(f"IMDb aggregator failed: {e}")
+        # Gather reviews concurrently from all scrapers
+        tasks = [
+            imdb_scraper.scrape_reviews(movie_title, imdb_id),
+            reddit_scraper.scrape_reviews(movie_title),
+            letterboxd_scraper.scrape_reviews(movie_title),
+            rotten_tomatoes_scraper.scrape_reviews(movie_title)
+        ]
+        
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        imdb_res = results[0] if not isinstance(results[0], Exception) else []
+        reddit_res = results[1] if not isinstance(results[1], Exception) else []
+        letterboxd_res = results[2] if not isinstance(results[2], Exception) else []
+        rt_res = results[3] if not isinstance(results[3], Exception) else []
+        
+        aggregated_reviews = []
+        if imdb_res: aggregated_reviews.extend(imdb_res)
+        if reddit_res: aggregated_reviews.extend(reddit_res)
+        if letterboxd_res: aggregated_reviews.extend(letterboxd_res)
+        if rt_res: aggregated_reviews.extend(rt_res)
             
-        # 2. Fetch from Reddit
-        try:
-            reddit_reviews = reddit_scraper.scrape_reviews(movie_title)
-            aggregated_reviews.extend(reddit_reviews)
-        except Exception as e:
-            print(f"Reddit aggregator failed: {e}")
-            
-        # 3. Fetch from Letterboxd
-        try:
-            letterboxd_reviews = letterboxd_scraper.scrape_reviews(movie_title)
-            aggregated_reviews.extend(letterboxd_reviews)
-        except Exception as e:
-            print(f"Letterboxd aggregator failed: {e}")
-            
-        # 4. Fetch from Rotten Tomatoes
-        try:
-            rt_reviews = rotten_tomatoes_scraper.scrape_reviews(movie_title)
-            aggregated_reviews.extend(rt_reviews)
-        except Exception as e:
-            print(f"Rotten Tomatoes aggregator failed: {e}")
-            
-        # 5. Process merged list and compute sentiment metrics
+        # Process merged list and compute sentiment metrics
         unified_results = []
         for review in aggregated_reviews:
             sentiment = sentiment_service.analyze_text(review["text"])
+            aspects = sentiment_service.analyze_aspects(review["text"])
             
-            # If the source is Reddit (lacks explicit ratings), dynamically convert sentiment to a rating!
+            # If the source is Reddit (lacks explicit ratings), dynamically convert sentiment to a rating
             scraped_rating = review.get("rating")
             if scraped_rating is None or review["source"] == "Reddit":
                 scraped_rating = sentiment_service.convert_sentiment_to_rating(sentiment)
@@ -68,10 +62,10 @@ class UnifiedMovieScraper:
                 "review_text": review["text"],
                 "source": review["source"],
                 "sentiment_score": round(float(polarity), 4),
-                "sentiment_label": sentiment["final_sentiment"]
+                "sentiment_label": sentiment["final_sentiment"],
+                "aspect_scores": aspects
             })
             
         return unified_results
-
 # Instantiate service singleton
 movie_scraper = UnifiedMovieScraper()

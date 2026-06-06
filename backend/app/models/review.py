@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey, Text, Float, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, ForeignKey, Text, Float, String, Boolean, DateTime, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -20,6 +20,7 @@ class Review(Base):
     # Sentiment Evaluation Fields
     sentiment_score = Column(Float, nullable=True)
     sentiment_label = Column(String, nullable=True)
+    aspect_scores = Column(JSON, nullable=True)  # Precomputed aspect-based sentiment ratings
     
     # Scraping Fields
     is_scraped = Column(Boolean, default=False, nullable=False)
