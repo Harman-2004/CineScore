@@ -6,20 +6,32 @@ import {
 } from 'recharts';
 import './App.css';
 
+// Sanitize URL helper to remove trailing slash
+const sanitizeUrl = (url) => {
+  if (!url) return '';
+  const trimmed = url.trim();
+  return trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed;
+};
+
 // Top-level backend URL loaded from environment variables
-const BACKEND_URL = import.meta.env.VITE_API_URL || '';
+const BACKEND_URL = sanitizeUrl(import.meta.env.VITE_API_URL || '');
+console.log("[CineScore API] Initialized with sanitized BACKEND_URL:", BACKEND_URL || "(relative path / local Vercel fallback)");
 
-// Global warning if the backend URL is missing
-if (!BACKEND_URL) {
-  console.warn("VITE_API_URL environment variable is not defined! API requests will fail if not configured.");
-}
+// Safe rating parser to prevent TypeError when toFixed is called on missing/string scores
+const parseRating = (val, fallback = 0) => {
+  if (val === null || val === undefined) return fallback;
+  const num = parseFloat(val);
+  return isNaN(num) ? fallback : num;
+};
 
-// Network request helper with timeout and custom error handling
+// Network request helper with timeout, logging, and custom error handling
 const fetchWithTimeout = async (resource, options = {}) => {
   const { timeout = 10000 } = options;
   
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
+  
+  console.log(`[API Request] URL: ${resource} | Method: ${options.method || 'GET'}`);
   
   try {
     const response = await fetch(resource, {
@@ -27,6 +39,23 @@ const fetchWithTimeout = async (resource, options = {}) => {
       signal: controller.signal
     });
     clearTimeout(id);
+    
+    // Clone response so we can log its payload without consuming the original body stream
+    const responseClone = response.clone();
+    
+    console.log(`[API Response] URL: ${resource} | Status: ${response.status} ${response.statusText}`);
+    
+    try {
+      const textBody = await responseClone.text();
+      try {
+        const jsonBody = JSON.parse(textBody);
+        console.log(`[API Response Payload] URL: ${resource} | Data:`, jsonBody);
+      } catch {
+        console.log(`[API Response Payload] URL: ${resource} | Text:`, textBody.slice(0, 1000));
+      }
+    } catch (logErr) {
+      console.warn(`[API Log Error] Failed to read response body for logging:`, logErr);
+    }
     
     if (!response.ok) {
       const errorMsg = `API Request failed: ${response.status} ${response.statusText} at ${resource}`;
@@ -42,7 +71,7 @@ const fetchWithTimeout = async (resource, options = {}) => {
       console.error(timeoutMsg);
       throw new Error(timeoutMsg);
     }
-    console.error(`Fetch error at ${resource}:`, error);
+    console.error(`[API Fetch Exception] URL: ${resource} | Error:`, error);
     throw error;
   }
 };
@@ -589,7 +618,7 @@ export default function App() {
             setSuggestionsLoading(false);
           })
           .catch(err => {
-            console.error("Suggestions fetch failed:", err);
+            console.error("[Search Pipeline] Suggestions fetch failed:", err);
             setSuggestionsLoading(false);
           });
       } else {
@@ -911,8 +940,8 @@ export default function App() {
           setIsLoading(false);
         })
         .catch(err => {
-          console.error("Search failed:", err);
-          addToast("Search failed due to a network or backend error.", "SEARCH ERROR", "rose");
+          console.error("[Search Pipeline] Search failed explicitly:", err);
+          addToast(`Search failed: ${err.message || 'Server connection issue.'}`, "SEARCH ERROR", "rose");
           setIsLoading(false);
         });
     } else {
@@ -1072,12 +1101,12 @@ export default function App() {
 
   // Recharts Data visualizations
   const ratingComparisonData = [
-    { name: 'IMDb', Score: parseFloat((hybridRating.imdb_score || selectedMovie.imdb_rating || 0).toFixed(1)) },
-    { name: 'TMDb', Score: parseFloat((hybridRating.tmdb_score || selectedMovie.vote_average || 0).toFixed(1)) },
-    { name: 'Metacritic', Score: parseFloat((hybridRating.metacritic_score || selectedMovie.metacritic_score || 0).toFixed(1)) },
-    { name: 'NLP Score', Score: parseFloat(((hybridRating.sentiment_avg_polarity || 0.4) * 5 + 5).toFixed(1)) },
-    { name: 'YouTube', Score: parseFloat((hybridRating.youtube_score || 0).toFixed(1)) },
-    { name: 'CineScore AI', Score: parseFloat(compositeScore.toFixed(1)) }
+    { name: 'IMDb', Score: parseRating(hybridRating.imdb_score || selectedMovie.imdb_rating, 0) },
+    { name: 'TMDb', Score: parseRating(hybridRating.tmdb_score || selectedMovie.vote_average, 0) },
+    { name: 'Metacritic', Score: parseRating(hybridRating.metacritic_score || selectedMovie.metacritic_score, 0) },
+    { name: 'NLP Score', Score: parseRating((parseRating(hybridRating.sentiment_avg_polarity, 0.4) * 5 + 5), 5.0) },
+    { name: 'YouTube', Score: parseRating(hybridRating.youtube_score, 0) },
+    { name: 'CineScore AI', Score: parseRating(compositeScore, 7.0) }
   ];
 
   const sentimentPieData = [
@@ -1320,12 +1349,12 @@ export default function App() {
                       
                       {/* Hero ratings and release details */}
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap' }}>
-                        <span className="badge badge-tmdb" style={{ padding: '3px 8px', fontSize: '8.5px', background: 'linear-gradient(135deg, hsl(var(--accent-primary)), hsl(var(--accent-secondary)))', color: '#fff', border: 'none', fontWeight: 'bold' }}>CineScore: {compScore.toFixed(1)}</span>
-                        <span className="badge badge-imdb" style={{ padding: '3px 8px', fontSize: '8.5px', background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)', fontWeight: 'bold' }}>IMDb: {(featured.imdb_rating || featured.rating?.imdb_score || 7.5).toFixed(1)}</span>
+                        <span className="badge badge-tmdb" style={{ padding: '3px 8px', fontSize: '8.5px', background: 'linear-gradient(135deg, hsl(var(--accent-primary)), hsl(var(--accent-secondary)))', color: '#fff', border: 'none', fontWeight: 'bold' }}>CineScore: {parseRating(compScore, 7.0).toFixed(1)}</span>
+                        <span className="badge badge-imdb" style={{ padding: '3px 8px', fontSize: '8.5px', background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)', fontWeight: 'bold' }}>IMDb: {parseRating(featured.imdb_rating || featured.rating?.imdb_score, 7.5).toFixed(1)}</span>
                         <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', fontFamily: 'monospace', fontWeight: 'bold', marginLeft: '6px' }}>RELEASE: {year}</span>
                       </div>
 
-                      <p className="hero-tagline">{featured.overview}</p>
+                      <p className="hero-tagline">{featured.overview || 'No synopsis available.'}</p>
                       
                       <div className="hero-btn-row">
                         <button 
@@ -1426,8 +1455,8 @@ export default function App() {
                       
                       <div id={rowId} className="netflix-row-slider">
                         {list.map(movie => {
-                          const comp = movie.rating?.aggregate_hybrid_score || movie.vote_average || 7.0;
-                          const imdb = movie.imdb_rating || movie.rating?.imdb_score || 7.5;
+                          const comp = parseRating(movie.rating?.aggregate_hybrid_score || movie.vote_average, 7.0);
+                          const imdb = parseRating(movie.imdb_rating || movie.rating?.imdb_score, 7.5);
                           const rt = Math.round(comp * 10 - 4);
                           const explain = movie.explanation || {};
                           const pct = explain.match_percentage;
@@ -1572,7 +1601,7 @@ export default function App() {
                         </button>
                       </div>
                       <p className="movie-detail-release">RELEASE DATE: {selectedMovie.release_date || 'N/A'}</p>
-                      <p className="movie-detail-overview">{selectedMovie.overview}</p>
+                      <p className="movie-detail-overview">{selectedMovie.overview || 'No synopsis available.'}</p>
                     </div>
 
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '16px' }}>
@@ -1718,7 +1747,7 @@ export default function App() {
                           </span>
                           <span style={{ fontWeight: '700', color: '#fbbf24' }}>
                             {effectiveWeights.imdb > 0 && (hybridRating.imdb_score || selectedMovie.imdb_rating)
-                              ? `${(hybridRating.imdb_score || selectedMovie.imdb_rating).toFixed(1)}/10`
+                              ? `${parseRating(hybridRating.imdb_score || selectedMovie.imdb_rating, 0).toFixed(1)}/10`
                               : "Rating unavailable"}
                           </span>
                         </div>
@@ -1735,7 +1764,7 @@ export default function App() {
                           </span>
                           <span style={{ fontWeight: '700', color: 'hsl(var(--accent-secondary))' }}>
                             {effectiveWeights.tmdb > 0 && (hybridRating.tmdb_score || selectedMovie.vote_average)
-                              ? `${(hybridRating.tmdb_score || selectedMovie.vote_average).toFixed(1)}/10`
+                              ? `${parseRating(hybridRating.tmdb_score || selectedMovie.vote_average, 0).toFixed(1)}/10`
                               : "Rating unavailable"}
                           </span>
                         </div>
@@ -1752,7 +1781,7 @@ export default function App() {
                           </span>
                           <span style={{ fontWeight: '700', color: '#f87171' }}>
                             {effectiveWeights.metacritic > 0 && (hybridRating.metacritic_score || selectedMovie.metacritic_score)
-                              ? `${((hybridRating.metacritic_score || selectedMovie.metacritic_score) * 10).toFixed(0)}/100`
+                              ? `${(parseRating(hybridRating.metacritic_score || selectedMovie.metacritic_score, 0) * 10).toFixed(0)}/100`
                               : "Rating unavailable"}
                           </span>
                         </div>
@@ -1770,7 +1799,7 @@ export default function App() {
                             </span>
                             <span style={{ fontWeight: '700', color: '#4ade80' }}>
                               {effectiveWeights.nlp > 0
-                                ? `${((hybridRating.sentiment_avg_polarity || 0.4) * 5 + 5).toFixed(1)}/10`
+                                ? `${(parseRating(hybridRating.sentiment_avg_polarity, 0.4) * 5 + 5).toFixed(1)}/10`
                                 : "Awaiting Live Scan"}
                             </span>
                           </div>
@@ -1789,7 +1818,7 @@ export default function App() {
                             </span>
                             <span style={{ fontWeight: '700', color: '#ff0000' }}>
                               {effectiveWeights.youtube > 0 && hybridRating.youtube_score !== undefined && hybridRating.youtube_score !== null
-                                ? `${hybridRating.youtube_score.toFixed(1)}/10`
+                                ? `${parseRating(hybridRating.youtube_score, 0).toFixed(1)}/10`
                                 : "Awaiting Live Scan"}
                             </span>
                           </div>
