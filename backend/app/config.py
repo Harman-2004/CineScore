@@ -1,6 +1,7 @@
-from pydantic_settings import BaseSettings
-from pydantic import Field
-from typing import List, Optional
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, field_validator
+from typing import List, Optional, Any
+import os
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Movie AI Rating Platform"
@@ -12,23 +13,36 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     
     # Database Configuration
-    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/movie_db"
+    DATABASE_URL: str = "sqlite:///./movies.db"
     
-    # TMDb API Config
+    # TMDb API Config (optional for fallback mock data)
     TMDB_API_KEY: Optional[str] = None
     
-    # OMDb API Config (for official IMDb & Metacritic scores)
+    # OMDb API Config (optional for official IMDb & Metacritic scores)
     OMDB_API_KEY: Optional[str] = None
     
-    # YouTube API Config
+    # YouTube API Config (optional for reviews scraper)
     YOUTUBE_API_KEY: Optional[str] = None
     
-    # CORS Origins (Comma separated string converted to list)
+    # CORS Origins (Handles comma separated string or lists)
     BACKEND_CORS_ORIGINS: List[str] = ["*"]
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = True
+    # Read from .env in the backend directory or local env vars
+    model_config = SettingsConfigDict(
+        env_file=os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"),
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore"
+    )
 
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    @classmethod
+    def assemble_cors_origins(cls, v: Any) -> List[str]:
+        if isinstance(v, str) and not v.startswith("["):
+            return [i.strip() for i in v.split(",") if i.strip()]
+        elif isinstance(v, list):
+            return v
+        return ["*"]
+
+# Instantiate settings
 settings = Settings()

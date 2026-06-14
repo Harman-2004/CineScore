@@ -6,6 +6,48 @@ import {
 } from 'recharts';
 import './App.css';
 
+// Top-level backend URL loaded from environment variables
+const BACKEND_URL = import.meta.env.VITE_API_URL || '';
+
+// Global warning if the backend URL is missing
+if (!BACKEND_URL) {
+  console.warn("VITE_API_URL environment variable is not defined! API requests will fail if not configured.");
+}
+
+// Network request helper with timeout and custom error handling
+const fetchWithTimeout = async (resource, options = {}) => {
+  const { timeout = 10000 } = options;
+  
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    const response = await fetch(resource, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    
+    if (!response.ok) {
+      const errorMsg = `API Request failed: ${response.status} ${response.statusText} at ${resource}`;
+      console.error(errorMsg);
+      throw new Error(errorMsg);
+    }
+    
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    if (error.name === 'AbortError') {
+      const timeoutMsg = `Request timed out after ${timeout}ms at ${resource}`;
+      console.error(timeoutMsg);
+      throw new Error(timeoutMsg);
+    }
+    console.error(`Fetch error at ${resource}:`, error);
+    throw error;
+  }
+};
+
+
 // Fallback high-fidelity mock dataset used when backend is offline/unreachable
 const FALLBACK_MOVIES = [
   {
@@ -432,12 +474,7 @@ const MovieImage = ({ src, alt, className, style, size = 'w300', fallbackType = 
     );
   }
 
-  const backendUrl = import.meta.env.VITE_API_URL || 
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      ? 'http://localhost:8000'
-      : 'https://cinescore-api.onrender.com');
-
-  const imageUrl = src.startsWith('http') ? src : `${backendUrl}/image-proxy?path=${encodeURIComponent(src)}&size=${size}`;
+  const imageUrl = src.startsWith('http') ? src : `${BACKEND_URL}/image-proxy?path=${encodeURIComponent(src)}&size=${size}`;
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', borderRadius: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -542,7 +579,7 @@ export default function App() {
     setSuggestionsLoading(true);
     const delayDebounceFn = setTimeout(() => {
       if (backendAlive) {
-        fetch(`${backendUrl}/movies?query=${encodeURIComponent(searchQuery)}`)
+        fetchWithTimeout(`${BACKEND_URL}/movies?query=${encodeURIComponent(searchQuery)}`)
           .then(res => res.json())
           .then(data => {
             if (data.results) {
@@ -606,12 +643,7 @@ export default function App() {
     }
   };
   
-  const [backendUrl] = useState(
-    import.meta.env.VITE_API_URL || 
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      ? 'http://localhost:8000'
-      : 'https://cinescore-api.onrender.com')
-  );
+  // backendUrl is now managed globally via BACKEND_URL constant
 
   const [heroIndex, setHeroIndex] = useState(0);
 
@@ -694,16 +726,13 @@ export default function App() {
   ];
 
   const fetchUserRecommendations = () => {
-    fetch(`${backendUrl}/recommendations/user/1`)
-      .then(res => {
-        if (!res.ok) throw new Error("Failed to fetch user recommendations");
-        return res.json();
-      })
+    fetchWithTimeout(`${BACKEND_URL}/recommendations/user/1`)
+      .then(res => res.json())
       .then(data => {
         setUserRecs(data || []);
       })
       .catch(err => {
-        console.warn("Failed to load user recommendations:", err);
+        console.error("Failed to load user recommendations:", err);
         // Fallback to similar content of first movie in offline mode
         const mock = computeMockRecommendations(FALLBACK_MOVIES[0].id);
         setUserRecs(mock.similar_movies || []);
@@ -711,26 +740,23 @@ export default function App() {
   };
 
   const logMovieInteraction = (movieId, interactionType) => {
-    if (!backendUrl) return;
-    fetch(`${backendUrl}/recommendations/${movieId}/interaction?interaction_type=${interactionType}&user_id=1`, {
+    if (!BACKEND_URL) return;
+    fetchWithTimeout(`${BACKEND_URL}/recommendations/${movieId}/interaction?interaction_type=${interactionType}&user_id=1`, {
       method: 'POST'
     })
-    .then(res => {
-      if (!res.ok) throw new Error("Failed to log interaction");
-      return res.json();
-    })
+    .then(res => res.json())
     .then(data => {
       console.log("Logged interaction:", data);
       fetchUserRecommendations();
     })
     .catch(err => {
-      console.warn("Error logging interaction:", err);
+      console.error("Error logging interaction:", err);
     });
   };
 
   // Check API Health
   useEffect(() => {
-    fetch(`${backendUrl}/`)
+    fetchWithTimeout(`${BACKEND_URL}/`, { timeout: 3000 })
       .then(res => res.json())
       .then(data => {
         if (data.status === 'healthy') {
@@ -739,9 +765,9 @@ export default function App() {
           fetchUserRecommendations();
         }
       })
-      .catch(() => {
+      .catch((err) => {
         setBackendAlive(false);
-        console.log("FastAPI backend is offline. Operating in high-fidelity mock mode.");
+        console.error("FastAPI backend connection check failed. Operating in high-fidelity mock mode. Error:", err);
         // Fallback load
         const mock = computeMockRecommendations(FALLBACK_MOVIES[0].id);
         setUserRecs(mock.similar_movies || []);
@@ -749,7 +775,7 @@ export default function App() {
   }, []);
 
   const fetchPopularMovies = () => {
-    fetch(`${backendUrl}/movies`)
+    fetchWithTimeout(`${BACKEND_URL}/movies`)
       .then(res => res.json())
       .then(data => {
         if (data.results && data.results.length > 0) {
@@ -757,7 +783,10 @@ export default function App() {
           fetchMovieDetails(data.results[0].id, false);
         }
       })
-      .catch(err => console.error("Error loading movies:", err));
+      .catch(err => {
+        console.error("Error loading movies:", err);
+        addToast("Failed to load movies from server.", "SERVER ERROR", "rose");
+      });
   };
 
 
@@ -767,13 +796,9 @@ export default function App() {
       setSkeletonLoading(true);
     }
 
-    
     // Try consolidated dashboard endpoint first
-    fetch(`${backendUrl}/movie/${movieId}/dashboard`)
-      .then(res => {
-        if (!res.ok) throw new Error("Dashboard API returned error status");
-        return res.json();
-      })
+    fetchWithTimeout(`${BACKEND_URL}/movie/${movieId}/dashboard`)
+      .then(res => res.json())
       .then(dashboardData => {
         const movieData = dashboardData.movie_details;
         const reviewsData = dashboardData.reviews;
@@ -809,11 +834,11 @@ export default function App() {
       .catch(dashboardError => {
         console.warn("Unified dashboard request failed, falling back to individual calls:", dashboardError);
         Promise.all([
-          fetch(`${backendUrl}/movie/${movieId}`).then(r => r.json()),
-          fetch(`${backendUrl}/reviews/${movieId}`).then(r => r.json()),
-          fetch(`${backendUrl}/rating/${movieId}`).then(r => r.json()),
-          fetch(`${backendUrl}/sentiment/${movieId}`).then(r => r.json()).catch(() => null),
-          fetch(`${backendUrl}/movie/${movieId}/recommendations`).then(r => r.json()).catch(() => null)
+          fetchWithTimeout(`${BACKEND_URL}/movie/${movieId}`).then(r => r.json()),
+          fetchWithTimeout(`${BACKEND_URL}/reviews/${movieId}`).then(r => r.json()),
+          fetchWithTimeout(`${BACKEND_URL}/rating/${movieId}`).then(r => r.json()),
+          fetchWithTimeout(`${BACKEND_URL}/sentiment/${movieId}`).then(r => r.json()).catch(() => null),
+          fetchWithTimeout(`${BACKEND_URL}/movie/${movieId}/recommendations`).then(r => r.json()).catch(() => null)
         ])
           .then(([movieData, reviewsData, ratingData, sentimentData, recommendationsData]) => {
             const rawReviews = reviewsData.reviews || [];
@@ -843,6 +868,7 @@ export default function App() {
           })
           .catch(err => {
             console.error("Error loading details, falling back to mock details:", err);
+            addToast("Failed to fetch movie details. Loaded local archive backup.", "OFFLINE FALLBACK", "amber");
             const localMock = FALLBACK_MOVIES.find(m => m.id === movieId);
             if (localMock) {
               setSelectedMovie({
@@ -871,7 +897,7 @@ export default function App() {
 
     if (backendAlive) {
       setIsLoading(true);
-      fetch(`${backendUrl}/movies?query=${encodeURIComponent(searchQuery)}`)
+      fetchWithTimeout(`${BACKEND_URL}/movies?query=${encodeURIComponent(searchQuery)}`)
         .then(res => res.json())
         .then(data => {
           if (data.results && data.results.length > 0) {
@@ -886,6 +912,7 @@ export default function App() {
         })
         .catch(err => {
           console.error("Search failed:", err);
+          addToast("Search failed due to a network or backend error.", "SEARCH ERROR", "rose");
           setIsLoading(false);
         });
     } else {
@@ -927,7 +954,7 @@ export default function App() {
     }, 800);
 
     if (backendAlive) {
-      fetch(`${backendUrl}/movies/${selectedMovie.id}/scraped-reviews`)
+      fetchWithTimeout(`${BACKEND_URL}/movies/${selectedMovie.id}/scraped-reviews`)
         .then(res => res.json())
         .then(() => {
           clearInterval(interval);
@@ -941,6 +968,7 @@ export default function App() {
         })
         .catch(err => {
           console.error("Scraper failed:", err);
+          addToast("Scraper API failed to complete analysis.", "SCRAPER ERROR", "rose");
           clearInterval(interval);
           setScrapeStatus('');
           setIsLoading(false);

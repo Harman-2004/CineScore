@@ -107,6 +107,13 @@ def create_review(review_in: ReviewCreate, current_user: User = Depends(get_curr
     except Exception:
         pass
         
+    try:
+        from app.services.recommendation import recommendation_service
+        int_type = "like" if review_in.rating >= 7.0 else "view"
+        recommendation_service.log_user_interaction(db, current_user.id, review_in.movie_id, int_type)
+    except Exception:
+        pass
+        
     return db_review
 
 @router.get("/movie/{movie_id}", response_model=List[MovieReviewResponse])

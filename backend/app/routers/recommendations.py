@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
+from jose import jwt
 
 from app.database import get_db
 from app.services.recommendation import recommendation_service
 from app.schemas.movie import MovieResponse
+from app.config import settings
 
 router = APIRouter(prefix="/recommendations", tags=["Recommendations"])
 
@@ -14,6 +16,7 @@ class RecommendedMovieResponse(MovieResponse):
 
 @router.get("", response_model=List[RecommendedMovieResponse])
 async def get_recommendations(
+    request: Request,
     user_id: int = Query(1, description="User ID for personalized recommendations"),
     limit: int = Query(10, ge=1, le=50, description="Maximum number of recommendations to retrieve"),
     db: Session = Depends(get_db)
@@ -21,10 +24,26 @@ async def get_recommendations(
     """
     Retrieve personalized movie recommendations tailored to the user's rating profile.
     """
+    import logging
+    router_logger = logging.getLogger("cinescore.router.recommendations")
+    resolved_user_id = user_id
+    auth_header = request.headers.get("Authorization")
+    router_logger.info(f"[Recommendations API] Query user_id: {user_id}, Auth Header: {auth_header}")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+            user_id_str = payload.get("sub")
+            if user_id_str:
+                resolved_user_id = int(user_id_str)
+                router_logger.info(f"[Recommendations API] Resolved user_id from token: {resolved_user_id}")
+        except Exception as e:
+            router_logger.error(f"[Recommendations API] JWT decode error: {e}")
+
     try:
         recommendations = recommendation_service.get_personalized_recommendations(
             db=db,
-            user_id=user_id,
+            user_id=resolved_user_id,
             limit=limit
         )
         return recommendations
