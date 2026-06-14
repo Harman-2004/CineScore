@@ -150,11 +150,30 @@ def run_database_migrations_and_validation(engine):
         logger.error(f"Database migration/seeding check failed: {migration_error}")
         raise migration_error
 
+async def _prewarm_movies_cache():
+    """
+    Pre-fetches the popular movies list from TMDB right after startup.
+    Populates both the TMDB service internal cache and the router-level
+    response cache so the first frontend page load gets an instant hit.
+    """
+    import time
+    try:
+        logger.info("[Cache PreWarm] Fetching popular movies from TMDB...")
+        from app.services.tmdb import tmdb_service
+        from app.routers.rest import _movies_response_cache
+        data = await tmdb_service.get_popular_movies(page=1)
+        _movies_response_cache["popular:1"] = (time.time(), data)
+        count = len(data.get("results", []))
+        logger.info(f"[Cache PreWarm] Done — {count} popular movies cached. First requests will be instant.")
+    except Exception as e:
+        logger.warning(f"[Cache PreWarm] Failed (non-fatal): {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
     FastAPI lifespan manager handles startup migrations, validations,
-    and shutdown cleanup.
+    cache pre-warming, and shutdown cleanup.
     """
     logger.info("Initializing CineScore API Lifecycle...")
     try:
@@ -162,10 +181,14 @@ async def lifespan(app: FastAPI):
         logger.info("CineScore startup migrations and validations completed successfully.")
     except Exception as e:
         logger.critical(f"FATAL: CineScore failed to start due to validation error: {e}")
-        # Crash server on startup if settings are invalid in production
         if settings.ENVIRONMENT.lower() == "production":
             import sys
             sys.exit(1)
+
+    # Pre-warm the popular movies cache in the background
+    import asyncio
+    asyncio.create_task(_prewarm_movies_cache())
+
     yield
     logger.info("Shutting down CineScore API Lifecycle...")
 

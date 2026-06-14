@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from app.database import get_db
+from app.database import get_db, SessionLocal
 from app.models.movie import Movie
 from app.models.review import Review
 from app.models.rating import Rating
@@ -8,34 +8,73 @@ from app.services.tmdb import tmdb_service
 from app.routers.movies import _cache_movie_if_needed
 from app.schemas.movie import MovieResponse, MovieListResponse
 from typing import List, Dict, Any, Optional
+import logging
+import time
+
+logger = logging.getLogger("cinescore.rest")
 
 router = APIRouter(tags=["Standard REST API"])
 
+# In-process response cache: { cache_key -> (timestamp, data) }
+# Avoids repeated TMDB API round-trips on every page refresh.
+_movies_response_cache: Dict[str, Any] = {}
+_POPULAR_CACHE_TTL = 300   # 5 minutes for popular list
+_SEARCH_CACHE_TTL  = 600   # 10 minutes for search results
+
+def _background_cache_movies(movies: list):
+    """
+    Caches movie results in the database using a fresh session.
+    Runs after the response has already been sent to the client.
+    """
+    db = SessionLocal()
+    try:
+        for m in movies:
+            try:
+                _cache_movie_if_needed(db, m)
+            except Exception as cache_err:
+                logger.warning(f"[BG Cache] Failed to cache movie {m.get('id')}: {cache_err}")
+    finally:
+        db.close()
+
+
 @router.get("/movies", response_model=MovieListResponse)
 async def list_movies(
+    background_tasks: BackgroundTasks,
     page: int = Query(1, ge=1, description="Page number"),
     query: Optional[str] = Query(None, description="Optional search query keyword"),
-    db: Session = Depends(get_db)
 ):
     """
     List movies. If a query is provided, performs a search;
     otherwise, retrieves the current popular movies list.
+    Results are cached in-process for fast repeat access. DB caching happens
+    in the background AFTER the response is returned to the client.
     """
-    import asyncio
+    now = time.time()
+    cache_key = f"search:{query}:{page}" if query else f"popular:{page}"
+    ttl = _SEARCH_CACHE_TTL if query else _POPULAR_CACHE_TTL
+
+    # Serve from in-process cache if still fresh
+    if cache_key in _movies_response_cache:
+        ts, cached_data = _movies_response_cache[cache_key]
+        if now - ts < ttl:
+            logger.info(f"[Movies Cache] HIT for '{cache_key}' (age {int(now - ts)}s)")
+            return cached_data
+
     try:
         if query:
             data = await tmdb_service.search_movies(query=query, page=page)
         else:
             data = await tmdb_service.get_popular_movies(page=page)
-            
-        # Cache results in local database in a background thread
-        def cache_movies_sync(db, movies):
-            for m in movies:
-                try:
-                    _cache_movie_if_needed(db, m)
-                except Exception:
-                    pass
-        await asyncio.to_thread(cache_movies_sync, db, data.get("results", []))
+
+        # Store in in-process cache
+        _movies_response_cache[cache_key] = (now, data)
+        logger.info(f"[Movies Cache] MISS — fetched & cached '{cache_key}'")
+
+        # Schedule DB caching as a background task — response returns immediately
+        movies = data.get("results", [])
+        if movies:
+            background_tasks.add_task(_background_cache_movies, movies)
+
         return data
     except Exception as e:
         raise HTTPException(
