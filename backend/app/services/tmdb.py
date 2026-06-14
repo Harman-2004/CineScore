@@ -5,13 +5,17 @@ from bs4 import BeautifulSoup
 from typing import Dict, Any, List, Optional
 from app.config import settings
 
+# Global shared AsyncClient for TMDb requests to pool connections and avoid connection timeout/handshake failures
+client_limits = httpx.Limits(max_keepalive_connections=20, max_connections=50)
+http_client = httpx.AsyncClient(timeout=15.0, limits=client_limits)
+
 # Comprehensive local catalog of mock movies used when no TMDB_API_KEY is configured
 MOCK_MOVIES = [
     {
         "id": 27205,
         "title": "Inception",
         "overview": "Cobb, a skilled thief who commits corporate espionage by infiltrating the subconscious of his targets, is offered a chance to regain his old life as payment for a task considered to be impossible: \"inception\", the implantation of another person's idea into a target's subconscious.",
-        "poster_path": "/o062xtC3n4c73nJgf95SI6tAs2t.jpg",
+        "poster_path": "/9gk7adHYeZCEwtvfsH5ttJzqbcI.jpg",
         "release_date": "2010-07-15",
         "genres": [{"id": 28, "name": "Action"}, {"id": 878, "name": "Science Fiction"}, {"id": 12, "name": "Adventure"}],
         "genre_ids": [28, 878, 12],
@@ -120,10 +124,26 @@ class TMDBService:
         self.headers = {
             "accept": "application/json"
         }
+        self._search_cache = {}
+        self._popular_cache = {}
     
     def _is_configured(self) -> bool:
         """Returns True if a valid-looking API key is configured."""
         return bool(self.api_key and not self.api_key.startswith("your_tmdb_api_key"))
+
+    async def _get_with_retry(self, url: str, params: Dict[str, Any], headers: Dict[str, str], max_retries: int = 5, backoff: float = 0.2) -> httpx.Response:
+        import asyncio
+        last_exception = None
+        for attempt in range(max_retries):
+            try:
+                response = await http_client.get(url, params=params, headers=headers)
+                return response
+            except (httpx.ConnectError, httpx.ConnectTimeout) as e:
+                last_exception = e
+                print(f"[TMDb Service] Connection attempt {attempt + 1} failed: {e}. Retrying in {backoff}s...")
+                await asyncio.sleep(backoff)
+                backoff *= 2
+        raise last_exception
 
     def _fetch_omdb_ratings(self, imdb_id: str) -> Dict[str, Optional[float]]:
         """
@@ -140,7 +160,7 @@ class TMDBService:
         full_url = f"{url}?apikey={self.omdb_key}&i={imdb_id}"
         print(f"[OMDb Integration] Request URL: {full_url}")
         try:
-            response = requests.get(url, params=params, timeout=5)
+            response = requests.get(url, params=params, timeout=3.0)
             print(f"[OMDb Integration] Response Status Code: {response.status_code}")
             if response.status_code == 200:
                 data = response.json()
@@ -190,7 +210,7 @@ class TMDBService:
             "Accept-Language": "en-US,en;q=0.9"
         }
         try:
-            response = requests.get(url, headers=headers, timeout=5)
+            response = requests.get(url, headers=headers, timeout=3.0)
             if response.status_code == 200:
                 soup = BeautifulSoup(response.text, 'html.parser')
                 script_tag = soup.find('script', type='application/ld+json')
@@ -207,9 +227,16 @@ class TMDBService:
 
     async def search_movies(self, query: str, page: int = 1) -> Dict[str, Any]:
         """
-        Search movies on TMDb. Falls back to mock search if API is unconfigured.
+        Search movies on TMDb. Falls back to mock search if API is unconfigured or fails.
         """
-        if not self._is_configured():
+        import time
+        now = time.time()
+        cache_key = (query, page)
+        if cache_key in self._search_cache:
+            ts, cached_data = self._search_cache[cache_key]
+            if now - ts < 600:
+                return cached_data
+        def get_mock_search():
             q = query.lower()
             filtered = [
                 m for m in MOCK_MOVIES
@@ -236,8 +263,11 @@ class TMDBService:
                 "total_pages": 1,
                 "total_results": len(results)
             }
+
+        if not self._is_configured():
+            return get_mock_search()
             
-        async with httpx.AsyncClient() as client:
+        try:
             url = f"{self.base_url}/search/movie"
             params = {
                 "api_key": self.api_key,
@@ -245,20 +275,32 @@ class TMDBService:
                 "page": page,
                 "language": "en-US"
             }
-            response = await client.get(url, params=params, headers=self.headers)
+            response = await self._get_with_retry(url, params=params, headers=self.headers)
             response.raise_for_status()
             data = response.json()
             # For each result, include a realistic Metacritic score based on TMDb rating
             for m in data.get("results", []):
                 vote = m.get("vote_average", 0.0)
                 m["metacritic_score"] = round(vote - 0.5 + (m.get("id") % 10) * 0.1, 1)
+            self._search_cache[cache_key] = (now, data)
             return data
+        except Exception as e:
+            import traceback
+            print(f"[TMDB Service] Search failed due to network error/timeout: {e}. Falling back to mock data.")
+            traceback.print_exc()
+            return get_mock_search()
 
     async def get_popular_movies(self, page: int = 1) -> Dict[str, Any]:
         """
-        Get popular movies from TMDb. Falls back to mock data if API is unconfigured.
+        Get popular movies from TMDb. Falls back to mock data if API is unconfigured or fails.
         """
-        if not self._is_configured():
+        import time
+        now = time.time()
+        if page in self._popular_cache:
+            ts, cached_data = self._popular_cache[page]
+            if now - ts < 600:
+                return cached_data
+        def get_mock_popular():
             results = []
             for m in MOCK_MOVIES:
                 results.append({
@@ -278,27 +320,36 @@ class TMDBService:
                 "total_pages": 1,
                 "total_results": len(results)
             }
+
+        if not self._is_configured():
+            return get_mock_popular()
             
-        async with httpx.AsyncClient() as client:
+        try:
             url = f"{self.base_url}/movie/popular"
             params = {
                 "api_key": self.api_key,
                 "page": page,
                 "language": "en-US"
             }
-            response = await client.get(url, params=params, headers=self.headers)
+            response = await self._get_with_retry(url, params=params, headers=self.headers)
             response.raise_for_status()
             data = response.json()
             for m in data.get("results", []):
                 vote = m.get("vote_average", 0.0)
                 m["metacritic_score"] = round(vote - 0.5 + (m.get("id") % 10) * 0.1, 1)
+            self._popular_cache[page] = (now, data)
             return data
+        except Exception as e:
+            import traceback
+            print(f"[TMDB Service] Fetch popular failed due to network error/timeout: {e}. Falling back to mock data.")
+            traceback.print_exc()
+            return get_mock_popular()
 
     async def get_movie_details(self, movie_id: int) -> Dict[str, Any]:
         """
-        Get details for a specific movie. Falls back to mock data if API is unconfigured.
+        Get details for a specific movie. Falls back to mock data if API is unconfigured or fails.
         """
-        if not self._is_configured():
+        def get_mock_details():
             for m in MOCK_MOVIES:
                 if m["id"] == movie_id:
                     return m
@@ -307,7 +358,7 @@ class TMDBService:
             return {
                 "id": movie_id,
                 "title": f"Mock Movie {movie_id}",
-                "overview": f"This is a placeholder description for mock movie {movie_id} because the TMDb API key is not configured.",
+                "overview": f"This is a placeholder description for mock movie {movie_id} because the TMDb API key is not configured or network timed out.",
                 "poster_path": None,
                 "release_date": "2026-01-01",
                 "genres": fallback_genres,
@@ -316,16 +367,34 @@ class TMDBService:
                 "imdb_rating": 7.2,
                 "metacritic_score": 6.8
             }
+
+        if not self._is_configured():
+            return get_mock_details()
             
-        async with httpx.AsyncClient() as client:
+        try:
             url = f"{self.base_url}/movie/{movie_id}"
             params = {
                 "api_key": self.api_key,
-                "language": "en-US"
+                "language": "en-US",
+                "append_to_response": "videos"
             }
-            response = await client.get(url, params=params, headers=self.headers)
+            response = await self._get_with_retry(url, params=params, headers=self.headers)
             response.raise_for_status()
             data = response.json()
+            
+            # Extract YouTube video key
+            video_key = None
+            videos = data.get("videos", {}).get("results", [])
+            for v in videos:
+                if v.get("site") == "YouTube" and v.get("type") == "Trailer":
+                    video_key = v.get("key")
+                    break
+            if not video_key and videos:
+                for v in videos:
+                    if v.get("site") == "YouTube":
+                        video_key = v.get("key")
+                        break
+            data["youtube_video_key"] = video_key
             
             # Resolve IMDb and Metacritic ratings via OMDb API or dynamic web scraping
             imdb_id = data.get("imdb_id")
@@ -360,6 +429,108 @@ class TMDBService:
             data["metacritic_score"] = metacritic_score
             print(f"[TMDb Service] Final API details payload compiled: id={data.get('id')}, title={data.get('title')}, imdb_rating={data.get('imdb_rating')}, metacritic_score={data.get('metacritic_score')}")
             return data
+        except Exception as e:
+            import traceback
+            print(f"[TMDB Service] Fetch details failed due to network error/timeout: {e}. Falling back to mock data.")
+            traceback.print_exc()
+            return get_mock_details()
+
+    async def get_movie_keywords(self, movie_id: int) -> List[str]:
+        """
+        Retrieves keywords for a movie. Falls back to mock keywords in offline mode.
+        """
+        def get_mock_keywords():
+            mocks = {
+                27205: ["dream", "subconscious", "mind bending", "heist", "corporate espionage", "inception", "spinning top"],
+                155: ["superhero", "joker", "gotham", "vigilante", "chaos", "crime fighter", "justice"],
+                157336: ["black hole", "wormhole", "space travel", "time dilation", "astronaut", "extinction", "father daughter"],
+                680: ["hitman", "gangster", "non-linear timeline", "pulp fiction", "boxer", "drugs", "robbery"],
+                603: ["virtual reality", "hacker", "cyberpunk", "kung fu", "chosen one", "dystopia", "ai revolution"],
+                13: ["run", "shrimp", "vietnam war", "ping pong", "president", "love story", "historical event"],
+                238: ["mafia", "godfather", "crime family", "revenge", "betrayal", "new york city", "organized crime"],
+                497: ["prison", "supernatural", "death row", "healing", "compassion", "miracle", "friendship"]
+            }
+            return mocks.get(movie_id, ["movie", "cinema", "popular", "highly rated", "drama"])
+
+        if not self._is_configured():
+            return get_mock_keywords()
+
+        try:
+            url = f"{self.base_url}/movie/{movie_id}/keywords"
+            params = {"api_key": self.api_key}
+            response = await self._get_with_retry(url, params=params, headers=self.headers)
+            if response.status_code == 200:
+                data = response.json()
+                return [k.get("name") for k in data.get("keywords", [])]
+            return get_mock_keywords()
+        except Exception as e:
+            print(f"[TMDb Service] Fetch keywords failed: {e}. Using mock keywords.")
+            return get_mock_keywords()
+
+    async def get_movie_credits(self, movie_id: int) -> Dict[str, Any]:
+        """
+        Retrieves cast and crew (director) for a movie. Falls back to mock data in offline mode.
+        """
+        def get_mock_credits():
+            mocks = {
+                27205: {
+                    "cast": ["Leonardo DiCaprio", "Joseph Gordon-Levitt", "Elliot Page", "Tom Hardy", "Ken Watanabe"],
+                    "director": "Christopher Nolan"
+                },
+                155: {
+                    "cast": ["Christian Bale", "Heath Ledger", "Aaron Eckhart", "Maggie Gyllenhaal", "Gary Oldman"],
+                    "director": "Christopher Nolan"
+                },
+                157336: {
+                    "cast": ["Matthew McConaughey", "Anne Hathaway", "Jessica Chastain", "Bill Irwin", "Ellen Burstyn"],
+                    "director": "Christopher Nolan"
+                },
+                680: {
+                    "cast": ["John Travolta", "Samuel L. Jackson", "Uma Thurman", "Bruce Willis", "Harvey Keitel"],
+                    "director": "Quentin Tarantino"
+                },
+                603: {
+                    "cast": ["Keanu Reeves", "Laurence Fishburne", "Carrie-Anne Moss", "Hugo Weaving", "Gloria Foster"],
+                    "director": "Lana Wachowski"
+                },
+                13: {
+                    "cast": ["Tom Hanks", "Robin Wright", "Gary Sinise", "Mykelti Williamson", "Sally Field"],
+                    "director": "Robert Zemeckis"
+                },
+                238: {
+                    "cast": ["Marlon Brando", "Al Pacino", "James Caan", "Richard S. Castellano", "Robert Duvall"],
+                    "director": "Francis Ford Coppola"
+                },
+                497: {
+                    "cast": ["Tom Hanks", "David Morse", "Bonnie Hunt", "Michael Clarke Duncan", "James Cromwell"],
+                    "director": "Frank Darabont"
+                }
+            }
+            return mocks.get(movie_id, {
+                "cast": ["Lead Actor", "Supporting Actor 1", "Supporting Actor 2", "Supporting Actor 3", "Supporting Actor 4"],
+                "director": "Renowned Director"
+            })
+
+        if not self._is_configured():
+            return get_mock_credits()
+
+        try:
+            url = f"{self.base_url}/movie/{movie_id}/credits"
+            params = {"api_key": self.api_key}
+            response = await self._get_with_retry(url, params=params, headers=self.headers)
+            if response.status_code == 200:
+                data = response.json()
+                cast = [c.get("name") for c in data.get("cast", [])[:5]]
+                director = None
+                for crew in data.get("crew", []):
+                    if crew.get("job") == "Director":
+                        director = crew.get("name")
+                        break
+                return {"cast": cast, "director": director}
+            return get_mock_credits()
+        except Exception as e:
+            print(f"[TMDb Service] Fetch credits failed: {e}. Using mock credits.")
+            return get_mock_credits()
 
 # Instantiate service singleton
 tmdb_service = TMDBService()

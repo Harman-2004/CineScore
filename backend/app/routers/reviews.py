@@ -24,17 +24,23 @@ def _update_rating_statistics(db: Session, movie_id: int):
     all_reviews = db.query(Review).filter(Review.movie_id == movie_id).all()
     count = len(all_reviews)
     
-    sentiments = [r.sentiment_score for r in all_reviews if r.sentiment_score is not None]
+    # Exclude YouTube comments from general web sentiment to prevent double-counting
+    general_reviews = [r for r in all_reviews if r.source != "YouTube"]
+    sentiments = [r.sentiment_score for r in general_reviews if r.sentiment_score is not None]
     avg_sentiment = sum(sentiments) / len(sentiments) if sentiments else 0.0
     
     db_rating = db.query(Rating).filter(Rating.movie_id == movie_id).first()
     movie_record = db.query(Movie).filter(Movie.id == movie_id).first()
     
+    # Calculate YouTube rating from YouTube source comments
+    yt_reviews = [r for r in all_reviews if r.source == "YouTube"]
+    youtube_score = sum(r.rating for r in yt_reviews) / len(yt_reviews) if yt_reviews else (db_rating.youtube_score if db_rating else None)
+    
     tmdb_val = movie_record.vote_average if movie_record else 0.0
     imdb_val = movie_record.imdb_rating if movie_record else None
     metacritic_val = movie_record.metacritic_score if movie_record else None
     
-    aggregate = _calculate_hybrid_score(imdb_val, tmdb_val, metacritic_val, avg_sentiment)
+    aggregate = _calculate_hybrid_score(imdb_val, tmdb_val, metacritic_val, avg_sentiment, youtube_score)
     
     if not db_rating:
         db_rating = Rating(
@@ -42,6 +48,7 @@ def _update_rating_statistics(db: Session, movie_id: int):
             imdb_score=imdb_val,
             tmdb_score=tmdb_val,
             metacritic_score=metacritic_val,
+            youtube_score=youtube_score,
             aggregate_score=aggregate,
             sentiment_avg=round(float(avg_sentiment), 4),
             rating_count=count
@@ -51,6 +58,7 @@ def _update_rating_statistics(db: Session, movie_id: int):
         db_rating.imdb_score = imdb_val
         db_rating.tmdb_score = tmdb_val
         db_rating.metacritic_score = metacritic_val
+        db_rating.youtube_score = youtube_score
         db_rating.sentiment_avg = round(float(avg_sentiment), 4)
         db_rating.rating_count = count
         db_rating.aggregate_score = aggregate
@@ -78,13 +86,17 @@ def create_review(review_in: ReviewCreate, current_user: User = Depends(get_curr
     sentiment = sentiment_service.analyze_text(review_in.review_text)
     polarity = sentiment["positive_score"] - sentiment["negative_score"]
     
+    import json
+    aspects = sentiment_service.analyze_aspects(review_in.review_text)
+    
     db_review = Review(
         user_id=current_user.id,
         movie_id=review_in.movie_id,
         rating=review_in.rating,
         review_text=review_in.review_text,
         sentiment_score=round(float(polarity), 4),
-        sentiment_label=sentiment["final_sentiment"]
+        sentiment_label=sentiment["final_sentiment"],
+        aspect_scores_json=json.dumps(aspects)
     )
     db.add(db_review)
     db.commit()

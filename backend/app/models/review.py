@@ -20,10 +20,12 @@ class Review(Base):
     # Sentiment Evaluation Fields
     sentiment_score = Column(Float, nullable=True)
     sentiment_label = Column(String, nullable=True)
+    aspect_scores_json = Column(Text, nullable=True)
     
     # Scraping Fields
     is_scraped = Column(Boolean, default=False, nullable=False)
     author = Column(String, nullable=True)
+    source = Column(String(50), default='Web', nullable=True)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

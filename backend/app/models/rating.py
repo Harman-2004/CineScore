@@ -17,6 +17,7 @@ class Rating(Base):
     imdb_score = Column(Float, nullable=True)          # IMDb score
     tmdb_score = Column(Float, nullable=True)          # TMDb score
     metacritic_score = Column(Float, nullable=True)    # Metacritic score (out of 10)
+    youtube_score = Column(Float, nullable=True)       # YouTube score (out of 10)
     sentiment_avg = Column(Float, default=0.0)        # Review sentiment average (-1.0 to 1.0)
     rating_count = Column(Integer, default=0)          # Number of reviews
     last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

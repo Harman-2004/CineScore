@@ -1,6 +1,5 @@
 import re
-import torch
-import torch.nn.functional as F
+import math
 from typing import Dict, Any, Tuple, Optional
 from app.config import settings
 
@@ -38,6 +37,7 @@ class SentimentService:
             return
             
         try:
+            import torch
             from transformers import AutoTokenizer, AutoModelForSequenceClassification
             print(f"Loading Hugging Face model: {self.model_name}...")
             self._tokenizer = AutoTokenizer.from_pretrained(self.model_name, local_files_only=False)
@@ -52,7 +52,7 @@ class SentimentService:
     def _fallback_sentiment(self, text: str) -> Dict[str, Any]:
         """
         Pure Python fallback dictionary sentiment analyzer.
-        Counts positive/negative words and calculates soft softmax probabilities.
+        Counts positive/negative words and calculates soft softmax probabilities using math.exp.
         """
         words = re.findall(r"\b\w+\b", text.lower())
         if not words:
@@ -69,8 +69,8 @@ class SentimentService:
         pos_raw = float(pos_count)
         neg_raw = float(neg_count)
         
-        exp_pos = torch.exp(torch.tensor(pos_raw * 0.5)).item()
-        exp_neg = torch.exp(torch.tensor(neg_raw * 0.5)).item()
+        exp_pos = math.exp(pos_raw * 0.5)
+        exp_neg = math.exp(neg_raw * 0.5)
         sum_exp = exp_pos + exp_neg
         
         pos_prob = exp_pos / sum_exp
@@ -92,8 +92,8 @@ class SentimentService:
 
     def analyze_text(self, text: str) -> Dict[str, Any]:
         """
-        Analyzes movie review text sentiment using Hugging Face DistilBERT.
-        Falls back to rule-based lexicon if Hugging Face/offline errors occur.
+        Analyzes movie review text sentiment using TextBlob (ultra-fast, local).
+        Falls back to local rule-based lexicon if error occurs.
         """
         if not text or not text.strip():
             return {
@@ -103,28 +103,35 @@ class SentimentService:
                 "method": "empty_input"
             }
             
-        self._lazy_load_model()
-        
-        if not self._model_loaded:
-            return self._fallback_sentiment(text)
-            
         try:
-            inputs = self._tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
+            if not hasattr(self, "_TextBlob_class"):
+                from textblob import TextBlob
+                self._TextBlob_class = TextBlob
+            blob = self._TextBlob_class(text)
+            polarity = blob.sentiment.polarity
             
-            with torch.no_grad():
-                outputs = self._model(**inputs)
-                
-            probs = F.softmax(outputs.logits, dim=-1).squeeze().tolist()
+            # Custom heuristic adjustments for movie trailer review jargon & hype slang
+            text_lower = text.lower()
+            if "insane" in text_lower:
+                if any(x in text_lower for x in ["looks", "absolutely", "is", "so", "insanely good", "insanely great"]):
+                    polarity = max(polarity, 0.75)
+            if "unreal" in text_lower:
+                if any(x in text_lower for x in ["absolutely", "is", "so", "sound design", "hype"]):
+                    polarity = max(polarity, 0.8)
+            if "gives me chills" in text_lower or "gives me goosebumps" in text_lower or "gave me goosebumps" in text_lower or "gave me chills" in text_lower:
+                polarity = max(polarity, 0.85)
+            if "can't wait" in text_lower or "cannot wait" in text_lower:
+                polarity = max(polarity, 0.7)
+            if "hype" in text_lower or "hyped" in text_lower:
+                polarity = max(polarity, 0.75)
+
+            # Map polarity (-1.0 to 1.0) to positive/negative scores
+            pos_score = 0.5 + (polarity * 0.5)
+            neg_score = 1.0 - pos_score
             
-            if isinstance(probs, float):
-                probs = [1.0 - probs, probs]
-                
-            neg_score = probs[0]
-            pos_score = probs[1]
-            
-            if pos_score > 0.60:
+            if polarity > 0.1:
                 final_sentiment = "POSITIVE"
-            elif neg_score > 0.60:
+            elif polarity < -0.1:
                 final_sentiment = "NEGATIVE"
             else:
                 final_sentiment = "NEUTRAL"
@@ -133,10 +140,10 @@ class SentimentService:
                 "positive_score": round(float(pos_score), 4),
                 "negative_score": round(float(neg_score), 4),
                 "final_sentiment": final_sentiment,
-                "method": "hugging_face_transformers"
+                "method": "textblob"
             }
         except Exception as e:
-            print(f"Hugging Face runtime error: {e}. Falling back to lexicon.")
+            print(f"TextBlob analysis failed: {e}. Falling back to lexicon.")
             return self._fallback_sentiment(text)
 
     def convert_sentiment_to_rating(self, sentiment_result: Dict[str, Any]) -> float:

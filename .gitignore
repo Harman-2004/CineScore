@@ -21,6 +21,9 @@ dist-ssr/
 logs/
 *.log
 
+# Image Cache
+backend/app/image_cache/
+
 # Editor Settings
 .vscode/
 .idea/

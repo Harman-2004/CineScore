@@ -18,8 +18,15 @@ class Movie(Base):
     vote_average = Column(Float, default=0.0)
     imdb_rating = Column(Float, nullable=True)
     metacritic_score = Column(Float, nullable=True)  # Metacritic score column (out of 10)
+    trailer_transcript = Column(Text, nullable=True)  # YouTube trailer transcript
+    keywords = Column(JSON, nullable=True)
+    cast = Column(JSON, nullable=True)
+    director = Column(String, nullable=True)
+    themes = Column(JSON, nullable=True)
     cached_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # Relationships
     reviews = relationship("Review", back_populates="movie", cascade="all, delete-orphan")
     rating = relationship("Rating", back_populates="movie", uselist=False, cascade="all, delete-orphan")
+    embeddings = relationship("MovieEmbedding", back_populates="movie", uselist=False, cascade="all, delete-orphan")
+

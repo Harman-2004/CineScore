@@ -38,3 +38,15 @@ def test_get_movie_details_not_found(client: TestClient):
     data = response.json()
     assert data["id"] == 999999
     assert "Mock Movie 999999" in data["title"]
+
+def test_movie_dashboard(client: TestClient):
+    response = client.get("/movie/27205/dashboard")
+    assert response.status_code == 200
+    data = response.json()
+    assert "movie_details" in data
+    assert "reviews" in data
+    assert "rating" in data
+    assert "sentiment" in data
+    assert "recommendations" in data
+    assert data["movie_details"]["id"] == 27205
+    assert data["movie_details"]["title"] == "Inception"

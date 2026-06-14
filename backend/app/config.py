@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     # OMDb API Config (for official IMDb & Metacritic scores)
     OMDB_API_KEY: Optional[str] = None
     
+    # YouTube API Config
+    YOUTUBE_API_KEY: Optional[str] = None
+    
     # CORS Origins (Comma separated string converted to list)
     BACKEND_CORS_ORIGINS: List[str] = ["*"]
 

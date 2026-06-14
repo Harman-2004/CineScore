@@ -15,3 +15,5 @@ class User(Base):
 
     # One-to-many relationship with reviews
     reviews = relationship("Review", back_populates="user", cascade="all, delete-orphan")
+    preferences = relationship("UserPreference", back_populates="user", uselist=False, cascade="all, delete-orphan")
+
