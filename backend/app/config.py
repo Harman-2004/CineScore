@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     YOUTUBE_API_KEY: Optional[str] = None
     
     # CORS Origins (Handles comma separated string or lists)
-    BACKEND_CORS_ORIGINS: List[str] = ["*"]
+    BACKEND_CORS_ORIGINS: Any = ["*"]
 
     # Read from .env in the backend directory or local env vars
     model_config = SettingsConfigDict(
