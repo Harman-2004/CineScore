@@ -251,6 +251,7 @@ def read_root():
         "status": "healthy",
         "project": settings.PROJECT_NAME,
         "environment": settings.ENVIRONMENT,
+        "version": "779e554-v2",
         "docs_url": "/docs",
         "redoc_url": "/redoc"
     }
