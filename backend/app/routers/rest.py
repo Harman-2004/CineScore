@@ -109,6 +109,8 @@ async def list_movies(
                 vote_avg = m.get("vote_average", 0.0)
                 m["metacritic_score"] = round(vote_avg - 0.6 + (m_id % 10) * 0.1, 1)
 
+    return data
+
 
 @router.get("/movie/{id}", response_model=MovieResponse)
 async def movie_details(id: int, db: Session = Depends(get_db)):
