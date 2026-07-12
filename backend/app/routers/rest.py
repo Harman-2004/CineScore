@@ -54,6 +54,9 @@ async def list_movies(
     cache_key = f"search:{query}:{page}" if query else f"popular:{page}"
     ttl = _SEARCH_CACHE_TTL if query else _POPULAR_CACHE_TTL
 
+    from app.monitoring import get_current_metrics
+    metrics = get_current_metrics()
+
     data = None
     # Serve from in-process cache if still fresh
     if cache_key in _movies_response_cache:
@@ -61,8 +64,13 @@ async def list_movies(
         if now - ts < ttl:
             logger.info(f"[Movies Cache] HIT for '{cache_key}' (age {int(now - ts)}s)")
             data = cached_data
+            if metrics:
+                metrics.cache_hits += 1
 
     if data is None:
+        if metrics:
+            metrics.cache_misses += 1
+
         try:
             if query:
                 data = await tmdb_service.search_movies(query=query, page=page)

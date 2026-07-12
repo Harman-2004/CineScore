@@ -231,11 +231,17 @@ class TMDBService:
         """
         import time
         now = time.time()
+        from app.monitoring import get_current_metrics
+        metrics = get_current_metrics()
         cache_key = (query, page)
         if cache_key in self._search_cache:
             ts, cached_data = self._search_cache[cache_key]
             if now - ts < 600:
+                if metrics:
+                    metrics.cache_hits += 1
                 return cached_data
+        if metrics:
+            metrics.cache_misses += 1
         def get_mock_search():
             q = query.lower()
             filtered = [
@@ -296,10 +302,16 @@ class TMDBService:
         """
         import time
         now = time.time()
+        from app.monitoring import get_current_metrics
+        metrics = get_current_metrics()
         if page in self._popular_cache:
             ts, cached_data = self._popular_cache[page]
             if now - ts < 600:
+                if metrics:
+                    metrics.cache_hits += 1
                 return cached_data
+        if metrics:
+            metrics.cache_misses += 1
         def get_mock_popular():
             results = []
             for m in MOCK_MOVIES:

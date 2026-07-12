@@ -28,8 +28,8 @@ class EmbeddingService:
             import torch
             from transformers import AutoTokenizer, AutoModel
             print(f"[Embedding Service] Loading Sentence Transformers: {self.model_name}...")
-            self._tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-            self._model = AutoModel.from_pretrained(self.model_name)
+            self._tokenizer = AutoTokenizer.from_pretrained(self.model_name, local_files_only=True)
+            self._model = AutoModel.from_pretrained(self.model_name, local_files_only=True)
             self._model.eval()
             self._is_loaded = True
             print("[Embedding Service] Sentence Transformers loaded successfully.")

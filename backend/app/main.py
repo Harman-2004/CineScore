@@ -27,6 +27,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger("cinescore.main")
 
+# Initialize performance monitoring instrumentation
+from app.monitoring import initialize_monitoring
+initialize_monitoring()
+
 def run_database_migrations_and_validation(engine):
     """
     Performs startup environment validations, checks the database connection,
@@ -136,11 +140,12 @@ def run_database_migrations_and_validation(engine):
             user = session.query(User).filter(User.id == 1).first()
             if not user:
                 if session.query(User).count() == 0:
+                    from app.auth.security import get_password_hash
                     default_viewer = User(
                         id=1,
                         email="viewer@cinescore.ai",
                         username="cinescore_viewer",
-                        hashed_password="mock_password",
+                        hashed_password=get_password_hash("mock_password"),
                         is_active=True
                     )
                     session.add(default_viewer)
@@ -189,6 +194,11 @@ async def lifespan(app: FastAPI):
     import asyncio
     asyncio.create_task(_prewarm_movies_cache())
 
+    # Record startup time
+    from app.monitoring import STARTUP_TIME
+    startup_duration = time.time() - STARTUP_TIME
+    logger.info(f"CineScore startup completed in {startup_duration:.4f} seconds.")
+
     yield
     logger.info("Shutting down CineScore API Lifecycle...")
 
@@ -214,14 +224,33 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_headers=["*"],
     )
 
-# Performance Middleware: Log request execution time
+# Performance Middleware: Log request execution time and collect metrics
 @app.middleware("http")
-async def add_process_time_header(request: Request, call_next):
-    start_time = time.time()
-    response = await call_next(request)
-    process_time = time.time() - start_time
-    response.headers["X-Process-Time"] = str(process_time)
-    return response
+async def performance_middleware(request: Request, call_next):
+    from app.monitoring import RequestMetrics, metrics_context, write_structured_log, record_finished_request
+    
+    metrics = RequestMetrics(method=request.method, path=request.url.path)
+    token = metrics_context.set(metrics)
+    
+    # Try to extract search movie title or query keyword
+    query_param = request.query_params.get("query") or request.query_params.get("movie") or request.query_params.get("title")
+    if query_param:
+        metrics.movie_name = query_param
+    
+    try:
+        response = await call_next(request)
+        metrics.finalize(status_code=response.status_code)
+        write_structured_log(metrics)
+        record_finished_request(metrics)
+        response.headers["X-Process-Time"] = str(metrics.api_response_time)
+        return response
+    except Exception as e:
+        metrics.finalize(status_code=500)
+        write_structured_log(metrics)
+        record_finished_request(metrics)
+        raise e
+    finally:
+        metrics_context.reset(token)
 
 # Global Exception Handler
 @app.exception_handler(Exception)
@@ -233,7 +262,20 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 # Register Standard Root-Level REST API (e.g. /movies, /movie/{id}, /reviews/{movie})
+from app.monitoring import InstrumentedAPIRoute
+from app.routers import dashboard
+
+# Apply InstrumentedAPIRoute globally to all endpoints
+rest.router.route_class = InstrumentedAPIRoute
+auth_router.route_class = InstrumentedAPIRoute
+movies.router.route_class = InstrumentedAPIRoute
+reviews.router.route_class = InstrumentedAPIRoute
+recommendations.router.route_class = InstrumentedAPIRoute
+sentiment_router.route_class = InstrumentedAPIRoute
+dashboard.router.route_class = InstrumentedAPIRoute
+
 app.include_router(rest.router)
+app.include_router(dashboard.router)
 
 # Register API Routers under standard /api prefix
 app.include_router(auth_router, prefix="/api")
