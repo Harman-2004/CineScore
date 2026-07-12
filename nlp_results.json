@@ -1,0 +1,8 @@
+{
+  "average_text_preprocessing_time_ms": 0.0,
+  "average_textblob_inference_time_ms": 497.22,
+  "average_sentence_transformer_embedding_generation_time_ms": 1304.45,
+  "average_recommendation_similarity_search_time_ms": 7.4303,
+  "average_total_nlp_pipeline_time_ms": 1809.11,
+  "reviews_processed_per_second": 2.01
+}

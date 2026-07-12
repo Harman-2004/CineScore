@@ -1,9 +1,9 @@
 {
-  "average_query_execution_time_ms": null,
-  "slowest_query_time_ms": null,
-  "fastest_query_time_ms": null,
-  "number_of_sql_queries_per_request": 5.0,
-  "average_orm_execution_time_ms": null,
-  "database_connection_time_ms": 1711.07,
-  "status": "offline_unreachable"
+  "average_query_execution_time_ms": 378.25,
+  "slowest_query_time_ms": 2097.45,
+  "fastest_query_time_ms": 267.67,
+  "number_of_sql_queries_per_request": 12.8,
+  "average_orm_execution_time_ms": 378.8,
+  "database_connection_time_ms": 1360.1,
+  "status": "online"
 }

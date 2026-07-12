@@ -5,19 +5,19 @@ This report evaluates the performance metrics of the PostgreSQL database layer u
 ## I. System Status & Network Connectivity
 - **Target PostgreSQL Database**: Neon Serverless Postgres
 - **Host**: `ep-curly-queen-ah2fqhul-pooler.c-3.us-east-1.aws.neon.tech`
-- **Connection Status**: `OFFLINE / UNREACHABLE (Network Isolation)`
-- **Database Connection Latency**: `1711.07 ms`
+- **Connection Status**: `ONLINE (Active)`
+- **Database Connection Latency**: `1360.10 ms`
 
 ## II. Measured Database Layer Metrics
 
 | Metric | Measured Value | Description |
 | :--- | :---: | :--- |
-| **Database Connection Time** | 1711.07 ms | Avg time taken to establish database connection. |
-| **Avg Query Execution Time** | N/A (Connection Timeout) | Average execution time taken by PostgreSQL to execute a single SQL query. |
-| **Slowest SQL Query** | N/A | Latency of the slowest query in the search transaction lifecycle. |
-| **Fastest SQL Query** | N/A | Latency of the fastest cached/indexed select query. |
-| **Queries Per Request** | 5.0 | Average number of SQL queries generated per movie search request. |
-| **ORM Execution Time** | N/A | Average overhead introduced by SQLAlchemy ORM compilation/hydration. |
+| **Database Connection Time** | 1360.10 ms | Avg time taken to establish database connection. |
+| **Avg Query Execution Time** | 378.25 ms | Average execution time taken by PostgreSQL to execute a single SQL query. |
+| **Slowest SQL Query** | 2097.45 ms | Latency of the slowest query in the search transaction lifecycle. |
+| **Fastest SQL Query** | 267.67 ms | Latency of the fastest cached/indexed select query. |
+| **Queries Per Request** | 12.8 | Average number of SQL queries generated per movie search request. |
+| **ORM Execution Time** | 378.80 ms | Average overhead introduced by SQLAlchemy ORM compilation/hydration. |
 
 ---
 
