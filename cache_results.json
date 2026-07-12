@@ -1,0 +1,9 @@
+{
+  "cache_hit_rate_percent": 50.0,
+  "cache_miss_rate_percent": 50.0,
+  "duplicate_api_requests_avoided": 20,
+  "average_cache_lookup_time_ms": 0.0,
+  "api_latency_before_cache_ms": 1044.84,
+  "api_latency_after_cache_ms": 126.28,
+  "latency_improvement_percent": 87.91
+}
