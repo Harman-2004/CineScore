@@ -1,0 +1,8 @@
+{
+  "average_response_time_ms": 5108.23,
+  "minimum_response_time_ms": 1984.37,
+  "maximum_response_time_ms": 8395.98,
+  "median_response_time_ms": 4897.9,
+  "p95_latency_ms": 8395.98,
+  "requests_per_second": 2.24
+}

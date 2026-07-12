@@ -276,11 +276,66 @@ def _setup_sqlalchemy_listeners():
             if metrics:
                 metrics.orm_duration += duration
 
+LOGS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "logs"))
+PERFORMANCE_LOG_PATH = os.path.join(LOGS_DIR, "api_performance.log")
+BENCHMARK_JSON_PATH = os.path.join(LOGS_DIR, "benchmark.json")
+
+class RequestMetrics:
+    def __init__(self, method: str, path: str):
+        self.timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        self.start_time = time.time()
+        self.end_time = None
+        self.method = method
+        self.path = path
+        self.status_code = 0
+        self.api_response_time = 0.0
+        self.endpoint_duration = 0.0
+        self.db_queries_count = 0
+        self.db_queries_duration = 0.0
+        self.orm_duration = 0.0
+        self.embedding_calls_count = 0
+        self.embedding_duration = 0.0
+        self.recommendation_duration = 0.0
+        self.sentiment_calls_count = 0
+        self.sentiment_duration = 0.0
+        
+        # Third party APIs
+        self.tmdb_calls_count = 0
+        self.tmdb_duration = 0.0
+        self.omdb_calls_count = 0
+        self.omdb_duration = 0.0
+        self.youtube_calls_count = 0
+        self.youtube_duration = 0.0
+        self.network_wait_duration = 0.0
+        
+        # Cache
+        self.cache_hits = 0
+        self.cache_misses = 0
+        
+        # OS resource usage
+        self.memory_usage = 0.0
+        self.cpu_usage = 0.0
+        self.movie_name = "N/A"
+
+    def finalize(self, status_code: int):
+        self.end_time = time.time()
+        self.status_code = status_code
+        self.api_response_time = self.end_time - self.start_time
+        
+        # Fetch current process CPU and Memory footprint
+        try:
+            import psutil
+            proc = psutil.Process(os.getpid())
+            self.memory_usage = proc.memory_info().rss / (1024 * 1024) # RSS in MB
+            self.cpu_usage = proc.cpu_percent(interval=None)
+        except Exception:
+            pass
+
 # File writing lock
 FILE_LOCK = threading.Lock()
 
 def write_structured_log(metrics: RequestMetrics):
-    """Writes lightweight FastAPI endpoint timing logs to logs/api_performance.log."""
+    """Writes performance metrics to logs/api_performance.log and logs/benchmark.json."""
     # Ensure logs/ directory exists
     os.makedirs(LOGS_DIR, exist_ok=True)
     
@@ -296,12 +351,45 @@ def write_structured_log(metrics: RequestMetrics):
         f"Status: {metrics.status_code}\n"
     )
     
+    log_data = {
+        "Timestamp": metrics.timestamp,
+        "Movie Name": metrics.movie_name,
+        "API Response Time": round(metrics.api_response_time, 4),
+        "Database Time": round(metrics.db_queries_duration, 4),
+        "External API Time": round(metrics.tmdb_duration + metrics.omdb_duration + metrics.youtube_duration, 4),
+        "Embedding Time": round(metrics.embedding_duration, 4),
+        "Recommendation Time": round(metrics.recommendation_duration, 4),
+        "Sentiment Analysis Time": round(metrics.sentiment_duration, 4),
+        "Cache Hit or Miss": "HIT" if metrics.cache_hits > 0 and metrics.cache_misses == 0 else "MISS",
+        "Memory Usage": round(metrics.memory_usage, 2),
+        "CPU Usage": round(metrics.cpu_usage, 2),
+        "Status Code": metrics.status_code
+    }
+    
     with FILE_LOCK:
+        # 1. Write to api_performance.log
         try:
             with open(PERFORMANCE_LOG_PATH, "a", encoding="utf-8") as f:
                 f.write(log_line)
         except Exception as e:
             logger.error(f"Failed writing to api_performance.log: {e}")
+            
+        # 2. Append to benchmark.json
+        try:
+            records = []
+            if os.path.exists(BENCHMARK_JSON_PATH):
+                try:
+                    with open(BENCHMARK_JSON_PATH, "r", encoding="utf-8") as f:
+                        records = json.load(f)
+                        if not isinstance(records, list):
+                            records = []
+                except json.JSONDecodeError:
+                    records = []
+            records.append(log_data)
+            with open(BENCHMARK_JSON_PATH, "w", encoding="utf-8") as f:
+                json.dump(records, f, indent=2)
+        except Exception as e:
+            logger.error(f"Failed writing to benchmark.json: {e}")
 
 def record_finished_request(metrics: RequestMetrics):
     """Pushes the finished request metrics to the global stats history."""
