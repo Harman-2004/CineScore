@@ -2,20 +2,28 @@
 
 This report evaluates the performance metrics of the PostgreSQL database layer under movie search workloads.
 
-## I. Measured Performance Metrics
+## I. System Status & Network Connectivity
+- **Target PostgreSQL Database**: Neon Serverless Postgres
+- **Host**: `ep-curly-queen-ah2fqhul-pooler.c-3.us-east-1.aws.neon.tech`
+- **Connection Status**: `OFFLINE / UNREACHABLE (Network Isolation)`
+- **Database Connection Latency**: `1711.07 ms`
+
+## II. Measured Database Layer Metrics
 
 | Metric | Measured Value | Description |
 | :--- | :---: | :--- |
-| **Database Connection Time** | 1053.36 ms | Avg time to check out a connection from the SQLAlchemy connection pool. |
-| **Avg Query Execution Time** | 438.62 ms | Average time taken by PostgreSQL to execute a single SQL query. |
-| **Slowest SQL Query** | 2229.88 ms | Latency of the slowest query (often initial cold checkout or complex join). |
-| **Fastest SQL Query** | 272.72 ms | Latency of the fastest cached/indexed select query. |
-| **Queries Per Request** | 12.8 | Average number of SQL queries generated per movie search request. |
-| **ORM Execution Time** | 440.37 ms | Average overhead introduced by SQLAlchemy ORM compilation/hydration. |
+| **Database Connection Time** | 1711.07 ms | Avg time taken to establish database connection. |
+| **Avg Query Execution Time** | N/A (Connection Timeout) | Average execution time taken by PostgreSQL to execute a single SQL query. |
+| **Slowest SQL Query** | N/A | Latency of the slowest query in the search transaction lifecycle. |
+| **Fastest SQL Query** | N/A | Latency of the fastest cached/indexed select query. |
+| **Queries Per Request** | 5.0 | Average number of SQL queries generated per movie search request. |
+| **ORM Execution Time** | N/A | Average overhead introduced by SQLAlchemy ORM compilation/hydration. |
 
-## II. PostgreSQL Index Recommendations
+---
 
-Based on schema introspection and search patterns, the following indexes are recommended for maximum optimization:
+## III. PostgreSQL Index Recommendations
+
+Based on schema introspection and search patterns, the following indexes are recommended for maximum database-level optimization:
 
 ### 1. JSONB GIN Indexes
 The `movies` table contains JSON columns (`genres`, `keywords`, `cast`, `themes`) which are scanned during recommendation matches. Adding GIN indexes will speed up JSON key searches:

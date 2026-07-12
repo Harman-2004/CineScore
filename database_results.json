@@ -1,8 +1,9 @@
 {
-  "average_query_execution_time_ms": 438.62,
-  "slowest_query_time_ms": 2229.88,
-  "fastest_query_time_ms": 272.72,
-  "number_of_sql_queries_per_request": 12.8,
-  "average_orm_execution_time_ms": 440.37,
-  "database_connection_time_ms": 1053.36
+  "average_query_execution_time_ms": null,
+  "slowest_query_time_ms": null,
+  "fastest_query_time_ms": null,
+  "number_of_sql_queries_per_request": 5.0,
+  "average_orm_execution_time_ms": null,
+  "database_connection_time_ms": 1711.07,
+  "status": "offline_unreachable"
 }
