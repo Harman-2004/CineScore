@@ -74,15 +74,22 @@ def run_database_migrations_and_validation(engine):
     else:
         logger.info("All third-party integration API keys are configured.")
 
-    # 2. Verify Database Connection
+    # 2. Verify Database Connection with retry loop for serverless databases
     logger.info("Verifying connection to the database...")
-    try:
-        with engine.connect() as connection:
-            connection.execute(text("SELECT 1"))
-        logger.info("Database connection test succeeded.")
-    except Exception as e:
-        logger.error(f"Database connection test failed: {e}")
-        raise e
+    max_retries = 5
+    retry_delay = 2
+    for attempt in range(1, max_retries + 1):
+        try:
+            with engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+            logger.info("Database connection test succeeded.")
+            break
+        except Exception as e:
+            if attempt == max_retries:
+                logger.error(f"Database connection test failed after {max_retries} attempts: {e}")
+                raise e
+            logger.warning(f"Database connection attempt {attempt} failed: {e}. Retrying in {retry_delay}s...")
+            time.sleep(retry_delay)
 
     # 3. Create Tables
     logger.info("Ensuring database tables are created...")
