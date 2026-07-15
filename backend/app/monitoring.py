@@ -34,7 +34,7 @@ GLOBAL_METRICS_HISTORY = deque(maxlen=2000)
 STARTUP_TIME = time.time()
 
 # File paths for logs
-LOGS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "logs"))
+LOGS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "logs"))
 PERFORMANCE_LOG_PATH = os.path.join(LOGS_DIR, "api_performance.log")
 
 class RequestMetrics:
@@ -276,7 +276,7 @@ def _setup_sqlalchemy_listeners():
             if metrics:
                 metrics.orm_duration += duration
 
-LOGS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "logs"))
+LOGS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "logs"))
 PERFORMANCE_LOG_PATH = os.path.join(LOGS_DIR, "api_performance.log")
 BENCHMARK_JSON_PATH = os.path.join(LOGS_DIR, "benchmark.json")
 
