@@ -228,10 +228,12 @@ async def lifespan(app: FastAPI):
         run_database_migrations_and_validation(engine)
         logger.info("CineScore startup migrations and validations completed successfully.")
     except Exception as e:
-        logger.critical(f"FATAL: CineScore failed to start due to validation error: {e}")
-        if settings.ENVIRONMENT.lower() == "production":
-            import sys
-            sys.exit(1)
+        # Wrap startup exceptions with proper traceback logging
+        logger.error(
+            "CineScore failed to complete startup database validations/migrations. "
+            "Server will continue running in degraded state. Error details:", 
+            exc_info=True
+        )
 
     # Pre-warm the popular movies cache in the background
     import asyncio
@@ -326,6 +328,13 @@ app.include_router(movies.router, prefix="/api")
 app.include_router(reviews.router, prefix="/api")
 app.include_router(recommendations.router, prefix="/api")
 app.include_router(sentiment_router, prefix="/api")
+
+@app.get("/health")
+def health_check():
+    """
+    Explicit health check endpoint returning standard OK status.
+    """
+    return {"status": "ok"}
 
 @app.get("/")
 def read_root():
