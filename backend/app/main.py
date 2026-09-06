@@ -321,6 +321,7 @@ dashboard.router.route_class = InstrumentedAPIRoute
 
 app.include_router(rest.router)
 app.include_router(dashboard.router)
+app.include_router(recommendations.router)
 
 # Register API Routers under standard /api prefix
 app.include_router(auth_router, prefix="/api")
@@ -334,18 +335,14 @@ def health_check():
     """
     Explicit health check endpoint returning standard OK status.
     """
-    return {"status": "ok"}
+    return {"status": "healthy"}
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def read_root():
     """
     Root API health check and informational entry point.
     """
     return {
-        "status": "healthy",
-        "project": settings.PROJECT_NAME,
-        "environment": settings.ENVIRONMENT,
-        "version": "779e554-v2",
-        "docs_url": "/docs",
-        "redoc_url": "/redoc"
+        "status": "ok",
+        "service": "CineScore API"
     }

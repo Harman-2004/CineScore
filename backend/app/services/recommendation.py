@@ -32,7 +32,7 @@ class RecommendationService:
         if total > 0:
             self.weights = {k: v / total for k, v in new_weights.items()}
 
-    def generate_embeddings_for_movie_if_needed(self, db: Session, movie: Movie) -> MovieEmbedding:
+    def generate_embeddings_for_movie_if_needed(self, db: Session, movie: Movie, commit: bool = True) -> MovieEmbedding:
         """
         Calculates and caches Sentence Transformers embeddings for a movie overview, themes,
         and keywords, ensuring semantic matching metadata is cached.
@@ -41,35 +41,13 @@ class RecommendationService:
         if db_emb:
             return db_emb
 
-        # 1. Fetch missing keywords/cast/crew from TMDb details if not present
-        if not movie.keywords or not movie.cast or not movie.director:
-            import asyncio
-            # Use run or execute in sync thread helper
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            
-            async def fetch_meta():
-                kws = await tmdb_service.get_movie_keywords(movie.id)
-                credits = await tmdb_service.get_movie_credits(movie.id)
-                return kws, credits
-            
-            if loop.is_running():
-                # Run in separate thread pool if loop is already running in current thread
-                import concurrent.futures
-                with concurrent.futures.ThreadPoolExecutor() as pool:
-                    kws, credits = pool.submit(lambda: asyncio.run(fetch_meta())).result()
-            else:
-                kws, credits = loop.run_until_complete(fetch_meta())
-                
-            if not movie.keywords:
-                movie.keywords = kws
-            if not movie.cast:
-                movie.cast = credits.get("cast", [])
-            if not movie.director:
-                movie.director = credits.get("director")
+        # Set default values for missing credits/keywords to avoid blocking TMDB API calls
+        if not movie.keywords:
+            movie.keywords = []
+        if not movie.cast:
+            movie.cast = []
+        if not movie.director:
+            movie.director = ""
 
         # 2. Extract themes if not present
         if not movie.themes:
@@ -80,7 +58,8 @@ class RecommendationService:
         if not movie.keywords:
             movie.keywords = embedding_service.extract_keywords(movie.overview or "")
 
-        db.commit()
+        if commit:
+            db.commit()
 
         # 4. Generate embeddings
         overview_text = movie.overview or ""
@@ -108,7 +87,8 @@ class RecommendationService:
                 combined_embedding=combined_emb
             )
             db.add(db_emb)
-            db.commit()
+            if commit:
+                db.commit()
         except IntegrityError:
             db.rollback()
             db_emb = db.query(MovieEmbedding).filter(MovieEmbedding.movie_id == movie.id).first()
@@ -336,10 +316,6 @@ class RecommendationService:
         if not candidates:
             return {"similar_movies": [], "similar_themes": [], "hidden_gems": [], "trending_alternatives": []}
 
-        # Pre-generate embeddings for all candidates
-        for c in candidates:
-            self.generate_embeddings_for_movie_if_needed(db, c)
-
         # Get user preferences
         pref = None
         if user_id:
@@ -376,11 +352,30 @@ class RecommendationService:
         if not matching_candidates:
             matching_candidates = candidates
 
+        # Fetch ratings and embeddings ONLY for matching candidates and the target movie in a single query
+        matching_ids = [c.id for c in matching_candidates] + [target_movie_id]
+        all_embeddings = {emb.movie_id: emb for emb in db.query(MovieEmbedding).filter(MovieEmbedding.movie_id.in_(matching_ids)).all()}
+        all_ratings = {r.movie_id: r for r in db.query(Rating).filter(Rating.movie_id.in_(matching_ids)).all()}
+
+        # Pre-generate embeddings ONLY for matching candidates that don't have them
+        new_embeddings = False
+        for c in matching_candidates:
+            if c.id not in all_embeddings:
+                c_emb = self.generate_embeddings_for_movie_if_needed(db, c, commit=False)
+                all_embeddings[c.id] = c_emb
+                new_embeddings = True
+
+        if new_embeddings:
+            try:
+                db.commit()
+            except Exception:
+                db.rollback()
+        
         scored_candidates = []
         target_genres = set(g.get("id") for g in target_movie.genres if isinstance(g, dict) and g.get("id"))
 
         for c in matching_candidates:
-            c_emb = db.query(MovieEmbedding).filter(MovieEmbedding.movie_id == c.id).first()
+            c_emb = all_embeddings.get(c.id)
             if not c_emb or not target_emb:
                 continue
 
@@ -396,7 +391,7 @@ class RecommendationService:
 
             # 3. CineScore Quality Score (25%)
             cinescore_val = 7.0
-            rating_obj = db.query(Rating).filter(Rating.movie_id == c.id).first()
+            rating_obj = all_ratings.get(c.id)
             if rating_obj and rating_obj.aggregate_score:
                 cinescore_val = rating_obj.aggregate_score
             elif c.vote_average:
@@ -564,7 +559,7 @@ class RecommendationService:
         pref = db.query(UserPreference).filter(UserPreference.user_id == user_id).first()
         if not pref:
             # Cold start: return top rated movies in database (excluding viewed/reviewed ones)
-            top_movies = db.query(Movie).order_by(Movie.vote_average.desc()).all()
+            top_movies = db.query(Movie).order_by(Movie.vote_average.desc()).limit(80).all()
             
             # Apply viewed/reviewed filter
             filtered_top = [m for m in top_movies if m.id not in viewed_ids]
@@ -606,11 +601,15 @@ class RecommendationService:
                     })
                 return recs[:limit]
 
+            # Bulk fetch ratings for filtered cold-start candidates in a single query
+            candidate_ids = [m.id for m in filtered_top[:limit]]
+            ratings_map = {r.movie_id: r for r in db.query(Rating).filter(Rating.movie_id.in_(candidate_ids)).all()}
+
             recs = []
             for m in filtered_top[:limit]:
                 # Add default explanation
                 cinescore = m.vote_average
-                rating_obj = db.query(Rating).filter(Rating.movie_id == m.id).first()
+                rating_obj = ratings_map.get(m.id)
                 if rating_obj and rating_obj.aggregate_score:
                     cinescore = rating_obj.aggregate_score
                 recs.append({
@@ -638,21 +637,44 @@ class RecommendationService:
                 })
             return recs
 
-        all_movies = db.query(Movie).all()
+        # Limit personalized recommendations candidates to the top 80 rated movies in the database
+        all_movies = db.query(Movie).order_by(Movie.vote_average.desc()).limit(80).all()
+        candidate_ids = [m.id for m in all_movies if m.id not in viewed_ids]
+
+        # Fetch existing embeddings and ratings ONLY for these candidate movies in single queries
+        all_embeddings = {emb.movie_id: emb for emb in db.query(MovieEmbedding).filter(MovieEmbedding.movie_id.in_(candidate_ids)).all()}
+        all_ratings = {r.movie_id: r for r in db.query(Rating).filter(Rating.movie_id.in_(candidate_ids)).all()}
+
+        new_embeddings = False
+        for m in all_movies:
+            if m.id in viewed_ids:
+                continue
+            
+            # Ensure embeddings are cached (commit in a single transaction batch)
+            if m.id not in all_embeddings:
+                m_emb = self.generate_embeddings_for_movie_if_needed(db, m, commit=False)
+                all_embeddings[m.id] = m_emb
+                new_embeddings = True
+
+        if new_embeddings:
+            try:
+                db.commit()
+            except Exception:
+                db.rollback()
+
         scored = []
         for m in all_movies:
             if m.id in viewed_ids:
                 continue
             
-            # Ensure embeddings are cached
-            self.generate_embeddings_for_movie_if_needed(db, m)
+            m_emb = all_embeddings.get(m.id)
 
             # User alignment score
             user_score = self._get_user_behavior_score(m, pref)
 
             # Quality score
             cinescore_val = 7.0
-            rating_obj = db.query(Rating).filter(Rating.movie_id == m.id).first()
+            rating_obj = all_ratings.get(m.id)
             if rating_obj and rating_obj.aggregate_score:
                 cinescore_val = rating_obj.aggregate_score
             elif m.vote_average:

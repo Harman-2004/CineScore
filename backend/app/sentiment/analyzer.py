@@ -1,9 +1,11 @@
+import os
 import re
 import math
+import joblib
 from typing import Dict, Any, Tuple, Optional
-from app.config import settings
+from app.sentiment.preprocessor import preprocessor
 
-# Lexicon for dictionary fallback (offline/download limits)
+# Lexicon for dictionary fallback (offline/missing model limits)
 POSITIVE_LEXICON = {
     "love", "loved", "loves", "loving", "great", "excellent", "awesome", "wonderful", "amazing",
     "good", "nice", "beautiful", "fantastic", "perfect", "masterpiece", "masterful", "brilliant",
@@ -22,32 +24,35 @@ NEGATIVE_LEXICON = {
 
 class SentimentService:
     def __init__(self):
-        self.model_name = "distilbert-base-uncased-finetuned-sst-2-english"
-        self._tokenizer = None
-        self._model = None
-        self._model_loaded = False
-        self._load_error = False
+        self.models_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "saved_models")
+        self.vec_path = os.path.join(self.models_dir, "tfidf_vectorizer.joblib")
+        self.clf_path = os.path.join(self.models_dir, "sentiment_classifier.joblib")
+        
+        self._vectorizer = None
+        self._classifier = None
+        self._ml_loaded = False
+        self._load_failed = False
 
-    def _lazy_load_model(self):
+    def _lazy_load_ml_model(self):
         """
-        Lazily loads the Hugging Face tokenizer and model.
-        Prevents app startup delays and handles download failures gracefully.
+        Lazily loads trained TF-IDF Vectorizer and Linear SVM classifier artifacts.
+        Prevents app startup overhead and handles missing files gracefully.
         """
-        if self._model_loaded or self._load_error:
+        if self._ml_loaded or self._load_failed:
             return
             
         try:
-            import torch
-            from transformers import AutoTokenizer, AutoModelForSequenceClassification
-            print(f"Loading Hugging Face model: {self.model_name}...")
-            self._tokenizer = AutoTokenizer.from_pretrained(self.model_name, local_files_only=False)
-            self._model = AutoModelForSequenceClassification.from_pretrained(self.model_name, local_files_only=False)
-            self._model.eval()
-            self._model_loaded = True
-            print("Hugging Face sentiment analysis model loaded successfully.")
+            if os.path.exists(self.vec_path) and os.path.exists(self.clf_path):
+                self._vectorizer = joblib.load(self.vec_path)
+                self._classifier = joblib.load(self.clf_path)
+                self._ml_loaded = True
+                print("Supervised ML Sentiment Model (TF-IDF + Linear SVM) loaded successfully.")
+            else:
+                self._load_failed = True
+                print(f"WARNING: Sentiment model artifacts missing at {self.models_dir}. Falling back to local lexicon.")
         except Exception as e:
-            self._load_error = True
-            print(f"WARNING: Hugging Face model download failed or offline. Using local lexicon fallback. Details: {e}")
+            self._load_failed = True
+            print(f"WARNING: Failed to load ML sentiment model: {e}. Falling back to local lexicon.")
 
     def _fallback_sentiment(self, text: str) -> Dict[str, Any]:
         """
@@ -92,8 +97,8 @@ class SentimentService:
 
     def analyze_text(self, text: str) -> Dict[str, Any]:
         """
-        Analyzes movie review text sentiment using TextBlob (ultra-fast, local).
-        Falls back to local rule-based lexicon if error occurs.
+        Analyzes review text sentiment using Supervised TF-IDF + Linear SVM ML Model.
+        Falls back to local rule-based lexicon if model artifacts are missing or error occurs.
         """
         if not text or not text.strip():
             return {
@@ -103,52 +108,47 @@ class SentimentService:
                 "method": "empty_input"
             }
             
-        try:
-            if not hasattr(self, "_TextBlob_class"):
-                from textblob import TextBlob
-                self._TextBlob_class = TextBlob
-            blob = self._TextBlob_class(text)
-            polarity = blob.sentiment.polarity
-            
-            # Custom heuristic adjustments for movie trailer review jargon & hype slang
-            text_lower = text.lower()
-            if "insane" in text_lower:
-                if any(x in text_lower for x in ["looks", "absolutely", "is", "so", "insanely good", "insanely great"]):
-                    polarity = max(polarity, 0.75)
-            if "unreal" in text_lower:
-                if any(x in text_lower for x in ["absolutely", "is", "so", "sound design", "hype"]):
-                    polarity = max(polarity, 0.8)
-            if "gives me chills" in text_lower or "gives me goosebumps" in text_lower or "gave me goosebumps" in text_lower or "gave me chills" in text_lower:
-                polarity = max(polarity, 0.85)
-            if "can't wait" in text_lower or "cannot wait" in text_lower:
-                polarity = max(polarity, 0.7)
-            if "hype" in text_lower or "hyped" in text_lower:
-                polarity = max(polarity, 0.75)
+        self._lazy_load_ml_model()
+        
+        if not self._ml_loaded:
+            return self._fallback_sentiment(text)
 
-            # Map polarity (-1.0 to 1.0) to positive/negative scores
-            pos_score = 0.5 + (polarity * 0.5)
-            neg_score = 1.0 - pos_score
+        try:
+            # 1. Apply robust domain preprocessing (cleaning, emojis, negations)
+            cleaned_text = preprocessor.preprocess(text)
             
-            if polarity > 0.1:
+            # 2. Extract TF-IDF features
+            X_vec = self._vectorizer.transform([cleaned_text])
+            
+            # 3. Obtain SVM decision boundary score (margin)
+            margin = float(self._classifier.decision_function(X_vec)[0])
+            
+            # 4. Calibrate margin to pseudo-probability via Sigmoid curve
+            # Scaling factor 1.2 provides well-calibrated confidence scores for LinearSVM
+            pos_prob = 1.0 / (1.0 + math.exp(-margin * 1.2))
+            neg_prob = 1.0 - pos_prob
+            
+            # 5. Determine sentiment category label
+            if margin > 0.15:
                 final_sentiment = "POSITIVE"
-            elif polarity < -0.1:
+            elif margin < -0.15:
                 final_sentiment = "NEGATIVE"
             else:
                 final_sentiment = "NEUTRAL"
                 
             return {
-                "positive_score": round(float(pos_score), 4),
-                "negative_score": round(float(neg_score), 4),
+                "positive_score": round(pos_prob, 4),
+                "negative_score": round(neg_prob, 4),
                 "final_sentiment": final_sentiment,
-                "method": "textblob"
+                "method": "tfidf_linear_svm"
             }
         except Exception as e:
-            print(f"TextBlob analysis failed: {e}. Falling back to lexicon.")
+            print(f"ML Sentiment Analysis failed: {e}. Falling back to lexicon.")
             return self._fallback_sentiment(text)
 
     def convert_sentiment_to_rating(self, sentiment_result: Dict[str, Any]) -> float:
         """
-        Utility that converts a neural sentiment result into a movie rating out of 10:
+        Utility that converts a sentiment result into a movie rating out of 10:
         - POSITIVE: Maps to the 8.0 to 10.0 range.
         - NEUTRAL: Maps to exactly 5.0.
         - NEGATIVE: Maps to the 1.0 to 3.0 range.
@@ -165,7 +165,6 @@ class SentimentService:
         elif label == "NEGATIVE":
             # Map 0.5 to 1.0 negative confidence score linearly to 1.0 to 3.0 range
             norm = max(0.0, min(1.0, (neg_score - 0.5) / 0.5)) if neg_score > 0.5 else 0.0
-            # Higher negative probability yields a score closer to 1.0
             rating = 3.0 - (norm * 2.0)
             return round(rating, 1)
         else:
@@ -175,7 +174,7 @@ class SentimentService:
         """
         Analyzes the review text and extracts separate sentiment ratings (out of 10)
         for acting, story, music, visual effects, and direction.
-        Uses sentence-based keyword mapping and neural/lexicon sentiment models.
+        Uses sentence-based keyword mapping and ML sentiment models.
         """
         if not text or not text.strip():
             return {
@@ -186,7 +185,6 @@ class SentimentService:
                 "direction": 5.0
             }
 
-        # Aspect Keywords List
         aspect_keywords = {
             "acting": ["act", "acting", "actor", "actors", "actress", "cast", "performance", "performances", "play", "role", "roles"],
             "story": ["story", "plot", "script", "screenplay", "writing", "theme", "themes", "premise", "pacing"],
@@ -195,18 +193,15 @@ class SentimentService:
             "direction": ["directing", "direction", "director", "nolan", "filmmaking", "filmmaker", "directs", "directed"]
         }
 
-        # Split review into sentences
         sentences = re.split(r'[.!?]+', text)
         sentences = [s.strip() for s in sentences if s.strip()]
 
-        # Determine global sentiment rating of the review as a baseline fallback
         global_result = self.analyze_text(text)
         global_score = self.convert_sentiment_to_rating(global_result)
 
         aspect_scores = {}
 
         for aspect, keywords in aspect_keywords.items():
-            # Find sentences matching keywords for this specific aspect
             matching_sentences = []
             for s in sentences:
                 s_lower = s.lower()
@@ -214,13 +209,11 @@ class SentimentService:
                     matching_sentences.append(s)
 
             if matching_sentences:
-                # Evaluate sentiment of sentences that mention this aspect explicitly
                 combined_text = " ".join(matching_sentences)
                 aspect_result = self.analyze_text(combined_text)
                 aspect_score = self.convert_sentiment_to_rating(aspect_result)
                 aspect_scores[aspect] = aspect_score
             else:
-                # Fallback to a soft deterministic variation of the global review rating
                 hash_val = sum(ord(c) for c in aspect) % 5
                 noise = (hash_val - 2) * 0.2
                 fallback_score = max(1.0, min(10.0, global_score + noise))

@@ -24,6 +24,16 @@ class EmbeddingService:
     def _lazy_load(self):
         if self._is_loaded or self._load_failed:
             return
+        
+        # Optimize startup latency: check if model files are cached locally before running heavy imports
+        import os
+        cache_path = os.path.expanduser("~/.cache/huggingface/hub/models--sentence-transformers--all-MiniLM-L6-v2")
+        local_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), self.model_name)
+        if not os.path.exists(cache_path) and not os.path.exists(local_path):
+            self._load_failed = True
+            print("[Embedding Service] Model files not found locally. Skipping heavy imports and using pseudo-embedding fallback.")
+            return
+
         try:
             import torch
             from transformers import AutoTokenizer, AutoModel

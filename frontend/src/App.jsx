@@ -240,7 +240,7 @@ export default function App() {
     fetchWithTimeout(`${BACKEND_URL}/`, { timeout: 3000 })
       .then(res => res.json())
       .then(data => {
-        if (data.status === 'healthy') {
+        if (data.status === 'healthy' || data.status === 'ok') {
           setBackendAlive(true);
           fetchPopularMovies();
           fetchUserRecommendations();

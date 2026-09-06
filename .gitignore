@@ -21,8 +21,10 @@ dist-ssr/
 logs/
 *.log
 
-# Image Cache
+# Image Cache & Data Caches
 backend/app/image_cache/
+backend/app/sentiment/data/
+backend/scratch/
 
 # Editor Settings
 .vscode/
